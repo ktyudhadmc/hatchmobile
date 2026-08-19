@@ -9,8 +9,8 @@ import '../../../../core/utils/dialog_helper.dart';
 import '../providers/transfer_provider.dart';
 
 /// Live camera view that scans a basket QR code, fetches its detail, then
-/// pushes the confirmation page. Used both as Home's main content and as
-/// the standalone /scan route.
+/// pushes the confirmation page. Only mounted once, as Home's main content
+/// — see [ScanFab] for why it must not be pushed as a second route on top.
 class TransferScannerView extends ConsumerStatefulWidget {
   const TransferScannerView({super.key});
 
@@ -67,39 +67,57 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView>
     super.dispose();
   }
 
+  static const double _scanBoxSize = 240;
+
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
       color: Colors.black,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          MobileScanner(controller: _controller, onDetect: _onDetect),
-          Center(
-            child: Container(
-              width: 240,
-              height: 240,
-              decoration: BoxDecoration(
-                border: Border.all(color: AppTheme.primaryColor, width: 3),
-                borderRadius: BorderRadius.circular(16),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Same rect fed to the scanner (restricts detection to this area)
+          // and used to position the overlay box, so what's drawn is
+          // exactly what's scanned — no more, no less.
+          final scanWindow = Rect.fromCenter(
+            center: constraints.biggest.center(Offset.zero),
+            width: _scanBoxSize,
+            height: _scanBoxSize,
+          );
+
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              MobileScanner(
+                controller: _controller,
+                onDetect: _onDetect,
+                scanWindow: scanWindow,
               ),
-            ),
-          ),
-          const Positioned(
-            bottom: 32,
-            left: 24,
-            right: 24,
-            child: Text(
-              'Arahkan kamera ke QR code basket',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                shadows: [Shadow(blurRadius: 8, color: Colors.black)],
+              Positioned.fromRect(
+                rect: scanWindow,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppTheme.primaryColor, width: 3),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
               ),
-            ),
-          ),
-        ],
+              const Positioned(
+                bottom: 32,
+                left: 24,
+                right: 24,
+                child: Text(
+                  'Arahkan kamera ke QR code basket',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    shadows: [Shadow(blurRadius: 8, color: Colors.black)],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

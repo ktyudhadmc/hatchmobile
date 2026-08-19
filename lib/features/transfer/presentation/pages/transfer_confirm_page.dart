@@ -16,7 +16,8 @@ class TransferConfirmPage extends ConsumerStatefulWidget {
   final TransferBasket basket;
 
   @override
-  ConsumerState<TransferConfirmPage> createState() => _TransferConfirmPageState();
+  ConsumerState<TransferConfirmPage> createState() =>
+      _TransferConfirmPageState();
 }
 
 class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
@@ -29,7 +30,9 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
 
     _controllers = {
       for (final grade in widget.basket.grades)
-        grade.id: TextEditingController(text: grade.receivedQuantity.toString()),
+        grade.id: TextEditingController(
+          text: (grade.receivedQuantity ?? grade.quantity).toString(),
+        ),
     };
 
     listenAsync(
@@ -57,7 +60,9 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
       return (id: grade.id, receivedQuantity: input);
     }).toList();
 
-    ref.read(confirmReceiveProvider.notifier).confirm(
+    ref
+        .read(confirmReceiveProvider.notifier)
+        .confirm(
           transferId: widget.basket.transfer.id,
           transferBasketId: widget.basket.id,
           grades: grades,
@@ -67,7 +72,8 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
   @override
   Widget build(BuildContext context) {
     final basket = widget.basket;
-
+    final screenHeight = MediaQuery.of(context).size.height;
+    
     return Scaffold(
       appBar: AppBar(title: const Text('Konfirmasi Penerimaan')),
       body: ListView(
@@ -75,13 +81,19 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
         children: [
           _buildInfoCard(basket),
           const SizedBox(height: 20),
-          Text('Jumlah Diterima per Grade', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            'Jumlah Diterima per Grade',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 12),
           ...basket.grades.map(_buildGradeRow),
         ],
       ),
       bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.all(20),
+        minimum: EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: screenHeight * 0.08,
+        ),
         child: _buildConfirmButton(),
       ),
     );
@@ -100,10 +112,16 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(basket.basketCode, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          Text(
+            basket.basketCode,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
           const SizedBox(height: 8),
           _infoRow('No. Transfer', basket.transfer.transferCode),
-          _infoRow('Tanggal', DateFormatter.format(basket.transfer.transferDate)),
+          _infoRow(
+            'Tanggal',
+            DateFormatter.format(basket.transfer.transferDate),
+          ),
           _infoRow('Cabang Asal', basket.transfer.branch.name),
         ],
       ),
@@ -139,10 +157,16 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Grade ${grade.grade}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  'Grade ${grade.grade}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 Text(
                   'Dikirim: ${grade.quantity}',
-                  style: const TextStyle(color: Color(0xFF7B7B7B), fontSize: 12),
+                  style: const TextStyle(
+                    color: Color(0xFF7B7B7B),
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -155,7 +179,9 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
               textAlign: TextAlign.center,
               decoration: InputDecoration(
                 labelText: 'Diterima',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 isDense: true,
               ),
             ),
@@ -178,7 +204,11 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
         child: const Text(
           'KONFIRMASI',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontFamily: AppTheme.fontFamily),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontFamily: AppTheme.fontFamily,
+          ),
         ),
       ),
     );
