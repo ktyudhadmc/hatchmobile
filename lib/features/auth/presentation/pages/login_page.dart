@@ -30,10 +30,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
       provider: authProvider,
       loadingMessage: 'Memproses...',
       onData: (user) {
-        if (user != null) {
-          print(user);
-          ToastHelper.success('Login berhasil!');
-        }
+        if (user != null) ToastHelper.success('Login berhasil!');
       },
       onError: (err, stack) => ToastHelper.error(err.toString()),
     );
