@@ -3,15 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/widgets/bottom_bar_navigation.dart';
-import '../../../transfer/presentation/widgets/scanned_baskets_list.dart';
-import '../../../transfer/presentation/widgets/transfer_scanner_view.dart';
+import '../widgets/scanned_baskets_list.dart';
+import '../widgets/transfer_scanner_view.dart';
 
-/// Home doubles as the scan screen — the camera is live as soon as this
-/// page opens, no extra tap needed. The bottom half lists baskets already
-/// confirmed this session, filling in as the user scans -> confirms ->
-/// comes back here.
-class HomePage extends ConsumerWidget {
-  const HomePage({super.key});
+/// App's launch screen — the camera is live as soon as this page opens, no
+/// extra tap needed. The bottom half lists baskets already confirmed this
+/// session, filling in as the user scans -> confirms -> comes back here.
+class ScanPage extends ConsumerWidget {
+  const ScanPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

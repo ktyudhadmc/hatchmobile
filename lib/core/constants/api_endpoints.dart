@@ -24,4 +24,6 @@ class ApiEndpoints {
       '$_api/hatchery/egg-receive/app/receive-basket';
 
   static const String getAllHistoryHeaderReceive = '$_api/hatchery/egg-receive/app/riwayat-header';
+  static const String getHistoryDetailReceive = '$_api/hatchery/egg-receive/app/riwayat-detail';
+
 }

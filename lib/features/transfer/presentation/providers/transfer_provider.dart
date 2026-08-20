@@ -2,7 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/transfer_repository_impl.dart';
 import '../../domain/entities/transfer_basket.dart';
+import '../../domain/entities/transfer_history_detail.dart';
+import '../../domain/entities/transfer_info.dart';
 import '../../domain/usecases/confirm_receive_usecase.dart';
+import '../../domain/usecases/get_all_history_header_receive.dart';
+import '../../domain/usecases/get_history_detail_receive_usecase.dart';
 import '../../domain/usecases/get_received_baskets_usecase.dart';
 import '../../domain/usecases/scan_basket_usecase.dart';
 import '../../domain/usecases/create_receive_usecase.dart';
@@ -96,5 +100,53 @@ class CreateReceiveNotifier extends StateNotifier<AsyncValue<void>> {
   Future<void> create({required String basketCode}) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _usecase(basketCode: basketCode));
+  }
+}
+
+/// Transfer headers for the Riwayat (history) pill filter — fetched once
+/// when the provider is first read, same eager pattern as
+/// [receivedBasketsProvider].
+final historyHeadersProvider =
+    StateNotifierProvider<HistoryHeadersNotifier, AsyncValue<List<TransferInfo>>>((
+      ref,
+    ) {
+      return HistoryHeadersNotifier(
+        GetAllHistoryHeaderReceive(ref.watch(transferRepositoryProvider)),
+      )..fetch();
+    });
+
+class HistoryHeadersNotifier
+    extends StateNotifier<AsyncValue<List<TransferInfo>>> {
+  HistoryHeadersNotifier(this._usecase) : super(const AsyncValue.loading());
+
+  final GetAllHistoryHeaderReceive _usecase;
+
+  Future<void> fetch() async {
+    state = await AsyncValue.guard(_usecase.call);
+  }
+}
+
+/// Which history pill is currently selected, by `transferCode`.
+final selectedTransferCodeProvider = StateProvider<String?>((ref) => null);
+
+final historyDetailProvider =
+    StateNotifierProvider<
+      HistoryDetailNotifier,
+      AsyncValue<TransferHistoryDetail?>
+    >((ref) {
+      return HistoryDetailNotifier(
+        GetHistoryDetailReceiveUsecase(ref.watch(transferRepositoryProvider)),
+      );
+    });
+
+class HistoryDetailNotifier
+    extends StateNotifier<AsyncValue<TransferHistoryDetail?>> {
+  HistoryDetailNotifier(this._usecase) : super(const AsyncValue.data(null));
+
+  final GetHistoryDetailReceiveUsecase _usecase;
+
+  Future<void> load(String transferCode) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => _usecase(transferCode));
   }
 }

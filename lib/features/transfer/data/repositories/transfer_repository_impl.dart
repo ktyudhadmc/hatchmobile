@@ -4,6 +4,7 @@ import 'package:hatchmobile/features/transfer/domain/entities/transfer_info.dart
 
 import '../../../../core/errors/app_exception.dart';
 import '../../domain/entities/transfer_basket.dart';
+import '../../domain/entities/transfer_history_detail.dart';
 import '../../domain/repositories/transfer_repository.dart';
 import '../datasources/transfer_remote_datasource.dart';
 
@@ -64,6 +65,17 @@ class TransferRepositoryImpl implements TransferRepository {
   Future<List<TransferInfo>> getAllHistoryHeaderReceive() async {
     try {
       return await _remote.getAllHistoryHeaderReceive();
+    } on DioException catch (e) {
+      throw _unwrap(e);
+    }
+  }
+
+  @override
+  Future<TransferHistoryDetail> getHistoryDetailReceive(
+    String transferCode,
+  ) async {
+    try {
+      return await _remote.getHistoryDetailReceive(transferCode);
     } on DioException catch (e) {
       throw _unwrap(e);
     }

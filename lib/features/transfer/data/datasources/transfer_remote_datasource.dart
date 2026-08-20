@@ -5,6 +5,7 @@ import '../../../../core/constants/api_endpoints.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/network/api_service.dart';
 import '../models/transfer_basket_model.dart';
+import '../models/transfer_history_detail_model.dart';
 
 // import '../../domain/repositories/mock_basket_response.dart';
 
@@ -97,5 +98,25 @@ class TransferRemoteDatasource {
     return (data['data'] as List)
         .map((e) => TransferInfoModel.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<TransferHistoryDetailModel> getHistoryDetailReceive(
+    String transferCode,
+  ) async {
+    final response = await _apiService.get(
+      ApiEndpoints.getHistoryDetailReceive,
+      queryParameters: {'transfer_code': transferCode},
+    );
+
+    final data = response.data as Map<String, dynamic>;
+    final detailData = data['data'];
+
+    if (data['status'] != true || detailData is! Map<String, dynamic>) {
+      throw NotFoundException(
+        (data['message'] as String?) ?? 'Riwayat tidak ditemukan',
+      );
+    }
+
+    return TransferHistoryDetailModel.fromJson(detailData);
   }
 }
