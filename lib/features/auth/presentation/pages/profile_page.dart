@@ -36,7 +36,7 @@ class ProfilePage extends ConsumerWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            _buildProfileCard(user?.name ?? '-'),
+            _buildProfileCard(user?.name ?? '-', user?.role.name ?? '-'),
             const SizedBox(height: 24),
             _buildMenuItem(
               icon: Icons.exit_to_app_rounded,
@@ -52,7 +52,7 @@ class ProfilePage extends ConsumerWidget {
     );
   }
 
-  Widget _buildProfileCard(String name) {
+  Widget _buildProfileCard(String name, String role) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -60,9 +60,7 @@ class ProfilePage extends ConsumerWidget {
         color: Colors.white,
         border: Border.all(color: const Color(0xffF5F8FA)),
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(color: Color(0x19000000), blurRadius: 6),
-        ],
+        boxShadow: const [BoxShadow(color: Color(0x19000000), blurRadius: 6)],
       ),
       child: Row(
         children: [
@@ -70,14 +68,43 @@ class ProfilePage extends ConsumerWidget {
             backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
             child: Text(
               initialFormatter(name),
-              style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: AppTheme.primaryColor,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Text(
-              name.toUpperCase(),
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name.toUpperCase(),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                    border: BoxBorder.all(color: AppTheme.primaryColor),
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  child: Text(
+                    role.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

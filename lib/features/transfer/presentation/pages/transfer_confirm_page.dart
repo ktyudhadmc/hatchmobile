@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -16,12 +18,14 @@ class TransferConfirmPage extends ConsumerStatefulWidget {
   final TransferBasket basket;
 
   @override
-  ConsumerState<TransferConfirmPage> createState() => _TransferConfirmPageState();
+  ConsumerState<TransferConfirmPage> createState() =>
+      _TransferConfirmPageState();
 }
 
 class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
     with AsyncStateHandlerMixin {
-  late final Map<int, TextEditingController> _controllers;
+  late final Map<String, TextEditingController> _controllers;
+  final bool _textFieldGradeReadOnly = true;
 
   @override
   void initState() {
@@ -29,17 +33,25 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
 
     _controllers = {
       for (final grade in widget.basket.grades)
-        grade.id: TextEditingController(text: grade.receivedQuantity.toString()),
+        grade.grade: TextEditingController(
+          text: (grade.receivedQuantity ?? grade.quantity).toString(),
+        ),
     };
 
     listenAsync(
-      provider: confirmReceiveProvider,
+      // DISABLE - YUDHA - 20260820
+      // provider: confirmReceiveProvider,
+      // DISABLE - YUDHA - 20260820
+      provider: createReceiveProvider,
       loadingMessage: 'Menyimpan...',
       onData: (_) {
+        unawaited(ref.read(receivedBasketsProvider.notifier).fetch());
         ToastHelper.success('Basket berhasil dikonfirmasi');
-        context.pop();
+        context.go('/home');
       },
-      onError: (err, stack) => ToastHelper.error(err.toString()),
+      onError: (err, stack) {
+        ToastHelper.error(err.toString());
+      },
     );
   }
 
@@ -52,36 +64,57 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
   }
 
   void _onConfirm() {
-    final grades = widget.basket.grades.map((grade) {
-      final input = int.tryParse(_controllers[grade.id]!.text) ?? 0;
-      return (id: grade.id, receivedQuantity: input);
-    }).toList();
+    // DISABLE - YUDHA
+    // final grades = widget.basket.grades.map((grade) {
+    //   final input = int.tryParse(_controllers[grade.id]!.text) ?? 0;
+    //   return (id: grade.id, receivedQuantity: input);
+    // }).toList();
 
-    ref.read(confirmReceiveProvider.notifier).confirm(
-          transferId: widget.basket.transfer.id,
-          transferBasketId: widget.basket.id,
-          grades: grades,
-        );
+    // ref
+    //     .read(confirmReceiveProvider.notifier)
+    //     .confirm(
+    //       transferId: widget.basket.transfer.id,
+    //       transferBasketId: widget.basket.id,
+    //       grades: grades,
+    //     );
+    // END DISABLE - YUDHA
+
+    ref
+        .read(createReceiveProvider.notifier)
+        .create(basketCode: widget.basket.basketCode);
   }
 
   @override
   Widget build(BuildContext context) {
     final basket = widget.basket;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Konfirmasi Penerimaan')),
+      appBar: AppBar(
+        title: const Text('Konfirmasi Penerimaan'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/home'),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           _buildInfoCard(basket),
           const SizedBox(height: 20),
-          Text('Jumlah Diterima per Grade', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            'Jumlah Diterima per Grade',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 12),
           ...basket.grades.map(_buildGradeRow),
         ],
       ),
       bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.all(20),
+        minimum: EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: screenHeight * 0.08,
+        ),
         child: _buildConfirmButton(),
       ),
     );
@@ -100,11 +133,17 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(basket.basketCode, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          Text(
+            basket.basketCode,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
           const SizedBox(height: 8),
-          _infoRow('No. Transfer', basket.transfer.transferCode),
-          _infoRow('Tanggal', DateFormatter.format(basket.transfer.transferDate)),
-          _infoRow('Cabang Asal', basket.transfer.branch.name),
+          _infoRow('Kode Transfer', basket.transfer.transferCode),
+          _infoRow(
+            'Tanggal',
+            DateFormatter.format(basket.transfer.transferDate),
+          ),
+          _infoRow('Farm', basket.transfer.branch),
         ],
       ),
     );
@@ -139,10 +178,16 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Grade ${grade.grade}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  'Grade ${grade.grade}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 Text(
                   'Dikirim: ${grade.quantity}',
-                  style: const TextStyle(color: Color(0xFF7B7B7B), fontSize: 12),
+                  style: const TextStyle(
+                    color: Color(0xFF7B7B7B),
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -150,12 +195,15 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
           Expanded(
             flex: 3,
             child: TextField(
-              controller: _controllers[grade.id],
+              readOnly: _textFieldGradeReadOnly,
+              controller: _controllers[grade.grade],
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
               decoration: InputDecoration(
                 labelText: 'Diterima',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 isDense: true,
               ),
             ),
@@ -178,7 +226,11 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
         child: const Text(
           'KONFIRMASI',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontFamily: AppTheme.fontFamily),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontFamily: AppTheme.fontFamily,
+          ),
         ),
       ),
     );

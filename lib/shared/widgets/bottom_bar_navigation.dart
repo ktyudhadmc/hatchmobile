@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+// import 'package:hatchmobile/features/transfer/data/models/transfer_basket_model.dart';
 
 import '../../core/theme/app_theme.dart';
+// import '../../features/transfer/domain/repositories/mock_basket_response.dart';
 
 /// Notched bottom bar with Home (left) and Profile (right) — the notch is
 /// where [ScanFab] docks. Used together on every top-level page, e.g.:
@@ -32,6 +34,16 @@ class BottomBarNavigation extends StatelessWidget {
             label: 'Beranda',
             isActive: currentRoute == '/home',
             onTap: () => context.go('/home'),
+            // isActive: currentRoute == '/transfer/confirm',
+            // `push`, not `go` — `go` replaces the whole stack, so there'd
+            // be nothing left for the confirm page's `context.pop()` to
+            // return to after confirming.
+            // onTap: () => context.pushReplacement(
+            //   '/transfer/confirm',
+            //   extra: TransferBasketModel.fromJson(
+            //     mockBasketResponseJson['data'] as Map<String, dynamic>,
+            //   ),
+            // ),
           ),
           _NavItem(
             icon: Icons.person_rounded,
@@ -88,8 +100,12 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-/// Orange circular FAB that docks into [BottomBarNavigation]'s notch and
-/// opens the QR/barcode scan page.
+/// Orange circular FAB that docks into [BottomBarNavigation]'s notch.
+///
+/// Goes to `/home` (not a `push`) because Home *is* the scanner — pushing a
+/// second scanner route on top would leave two [TransferScannerView]s alive
+/// at once, both reacting to the same scan, which double-fires the scan ->
+/// confirm flow. `go` replaces the stack instead of stacking on it.
 class ScanFab extends StatelessWidget {
   const ScanFab({super.key});
 
@@ -98,7 +114,7 @@ class ScanFab extends StatelessWidget {
     return FloatingActionButton(
       shape: const CircleBorder(),
       backgroundColor: AppTheme.primaryColor,
-      onPressed: () => context.push('/scan'),
+      onPressed: () => context.go('/home'),
       child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white),
     );
   }

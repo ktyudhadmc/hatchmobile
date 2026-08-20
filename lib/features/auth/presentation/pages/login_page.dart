@@ -119,7 +119,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
         top: false,
         minimum: EdgeInsets.symmetric(
           horizontal: 24,
-          vertical: screenHeight * 0.04,
+          vertical: screenHeight * 0.08,
         ),
         child: _buildSubmitButton('MASUK', screenWidth),
       ),

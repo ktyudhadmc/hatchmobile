@@ -1,11 +1,11 @@
 import '../../domain/entities/transfer_info.dart';
-import 'transfer_branch_model.dart';
 
 class TransferInfoModel extends TransferInfo {
   const TransferInfoModel({
     required super.id,
     required super.transferCode,
     required super.transferDate,
+    required super.productionDate,
     required super.branch,
   });
 
@@ -14,7 +14,9 @@ class TransferInfoModel extends TransferInfo {
       id: json['id'] as int,
       transferCode: json['transfer_code'] as String,
       transferDate: DateTime.parse(json['transfer_date'] as String),
-      branch: TransferBranchModel.fromJson(json['branch'] as Map<String, dynamic>),
+      productionDate: DateTime.parse(json['production_date'] as String),
+      branch: json['farm'] as String,
+      // branch: TransferBranchModel.fromJson(json['branch'] as Map<String, dynamic>),
     );
   }
 }

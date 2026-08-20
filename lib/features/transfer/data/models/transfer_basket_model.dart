@@ -17,7 +17,9 @@ class TransferBasketModel extends TransferBasket {
       grades: (json['grades'] as List)
           .map((e) => TransferGradeModel.fromJson(e as Map<String, dynamic>))
           .toList(),
-      transfer: TransferInfoModel.fromJson(json['transfer'] as Map<String, dynamic>),
+      transfer: TransferInfoModel.fromJson(
+        json['transfer'] as Map<String, dynamic>,
+      ),
     );
   }
 }

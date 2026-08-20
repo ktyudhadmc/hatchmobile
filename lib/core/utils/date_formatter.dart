@@ -11,6 +11,8 @@ class DateFormatter {
 
   static String toApiFormat(DateTime date) => DateFormat(AppConstants.apiDateFormat).format(date);
 
+  static String today() => DateFormat(AppConstants.dateFormat).format(DateTime.now());
+
   static DateTime? tryParse(String? value) {
     if (value == null || value.isEmpty) return null;
     return DateTime.tryParse(value);
