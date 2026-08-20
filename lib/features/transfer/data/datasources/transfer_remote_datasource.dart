@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hatchmobile/features/transfer/data/models/transfer_info_model.dart';
 
 import '../../../../core/constants/api_endpoints.dart';
+import '../../../../core/errors/app_exception.dart';
 import '../../../../core/network/api_service.dart';
 import '../models/transfer_basket_model.dart';
 
@@ -18,11 +20,31 @@ class TransferRemoteDatasource {
   final ApiService _apiService;
 
   Future<TransferBasketModel> getBasketByCode(String code) async {
+    // GET ONE BY BASKET CODE
+    // final response = await _apiService.get(
+    //   ApiEndpoints.transferBasketByCode(code),
+    // );
+    // final data = response.data as Map<String, dynamic>;
+    // return TransferBasketModel.fromJson(data['data'] as Map<String, dynamic>);
+
+    // GET ONE BY ADJUSTMENT [BE]
+    final qs = {'basket_code': code};
+
     final response = await _apiService.get(
-      ApiEndpoints.transferBasketByCode(code),
+      ApiEndpoints.transferBasket,
+      queryParameters: qs,
     );
+
     final data = response.data as Map<String, dynamic>;
-    return TransferBasketModel.fromJson(data['data'] as Map<String, dynamic>);
+    final basketData = data['data'];
+
+    if (data['status'] != true || basketData is! Map<String, dynamic>) {
+      throw NotFoundException(
+        (data['message'] as String?) ?? 'Kode basket tidak ditemukan',
+      );
+    }
+
+    return TransferBasketModel.fromJson(basketData);
     // return TransferBasketModel.fromJson(
     //   mockBasketResponseJson['data'] as Map<String, dynamic>,
     // );
@@ -45,11 +67,35 @@ class TransferRemoteDatasource {
     );
   }
 
+  Future<void> createReceive({required String basketCode}) async {
+    await _apiService.post(
+      ApiEndpoints.createReceive,
+      data: {'basket_code': basketCode},
+    );
+  }
+
+  Future<void> confirmReceiveBasket({required int basketCode}) async {
+    await _apiService.post(
+      ApiEndpoints.confirmTransferBasket,
+      data: {'transfer_id': basketCode},
+    );
+  }
+
   Future<List<TransferBasketModel>> getReceivedBaskets() async {
     final response = await _apiService.get(ApiEndpoints.receivedBaskets);
     final data = response.data as Map<String, dynamic>;
     return (data['data'] as List)
         .map((e) => TransferBasketModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<TransferInfoModel>> getAllHistoryHeaderReceive() async {
+    final response = await _apiService.get(
+      ApiEndpoints.getAllHistoryHeaderReceive,
+    );
+    final data = response.data as Map<String, dynamic>;
+    return (data['data'] as List)
+        .map((e) => TransferInfoModel.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 }

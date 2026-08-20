@@ -56,8 +56,7 @@ void main() {
       expect(basket.transfer.id, 1);
       expect(basket.transfer.transferCode, '15082024TE0002');
       expect(basket.transfer.transferDate, DateTime.parse('2024-01-15'));
-      expect(basket.transfer.branch.id, 1);
-      expect(basket.transfer.branch.name, 'Jabung');
+      expect(basket.transfer.branch, 'Jabung');
     });
   });
 }

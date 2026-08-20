@@ -5,10 +5,16 @@ import '../../domain/entities/transfer_basket.dart';
 import '../../domain/usecases/confirm_receive_usecase.dart';
 import '../../domain/usecases/get_received_baskets_usecase.dart';
 import '../../domain/usecases/scan_basket_usecase.dart';
+import '../../domain/usecases/create_receive_usecase.dart';
 
-final scanBasketProvider = StateNotifierProvider<ScanBasketNotifier, AsyncValue<TransferBasket?>>((ref) {
-  return ScanBasketNotifier(ScanBasketUsecase(ref.watch(transferRepositoryProvider)));
-});
+final scanBasketProvider =
+    StateNotifierProvider<ScanBasketNotifier, AsyncValue<TransferBasket?>>((
+      ref,
+    ) {
+      return ScanBasketNotifier(
+        ScanBasketUsecase(ref.watch(transferRepositoryProvider)),
+      );
+    });
 
 class ScanBasketNotifier extends StateNotifier<AsyncValue<TransferBasket?>> {
   ScanBasketNotifier(this._usecase) : super(const AsyncValue.data(null));
@@ -27,12 +33,17 @@ class ScanBasketNotifier extends StateNotifier<AsyncValue<TransferBasket?>> {
 /// client-side, and this list simply doesn't include it until the next
 /// successful confirm triggers a refetch.
 final receivedBasketsProvider =
-    StateNotifierProvider<ReceivedBasketsNotifier, AsyncValue<List<TransferBasket>>>((ref) {
-  return ReceivedBasketsNotifier(GetReceivedBasketsUsecase(ref.watch(transferRepositoryProvider)))
-    ..fetch();
-});
+    StateNotifierProvider<
+      ReceivedBasketsNotifier,
+      AsyncValue<List<TransferBasket>>
+    >((ref) {
+      return ReceivedBasketsNotifier(
+        GetReceivedBasketsUsecase(ref.watch(transferRepositoryProvider)),
+      )..fetch();
+    });
 
-class ReceivedBasketsNotifier extends StateNotifier<AsyncValue<List<TransferBasket>>> {
+class ReceivedBasketsNotifier
+    extends StateNotifier<AsyncValue<List<TransferBasket>>> {
   ReceivedBasketsNotifier(this._usecase) : super(const AsyncValue.loading());
 
   final GetReceivedBasketsUsecase _usecase;
@@ -42,9 +53,12 @@ class ReceivedBasketsNotifier extends StateNotifier<AsyncValue<List<TransferBask
   }
 }
 
-final confirmReceiveProvider = StateNotifierProvider<ConfirmReceiveNotifier, AsyncValue<void>>((ref) {
-  return ConfirmReceiveNotifier(ConfirmReceiveUsecase(ref.watch(transferRepositoryProvider)));
-});
+final confirmReceiveProvider =
+    StateNotifierProvider<ConfirmReceiveNotifier, AsyncValue<void>>((ref) {
+      return ConfirmReceiveNotifier(
+        ConfirmReceiveUsecase(ref.watch(transferRepositoryProvider)),
+      );
+    });
 
 class ConfirmReceiveNotifier extends StateNotifier<AsyncValue<void>> {
   ConfirmReceiveNotifier(this._usecase) : super(const AsyncValue.data(null));
@@ -58,7 +72,29 @@ class ConfirmReceiveNotifier extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
-      () => _usecase(transferId: transferId, transferBasketId: transferBasketId, grades: grades),
+      () => _usecase(
+        transferId: transferId,
+        transferBasketId: transferBasketId,
+        grades: grades,
+      ),
     );
+  }
+}
+
+final createReceiveProvider =
+    StateNotifierProvider<CreateReceiveNotifier, AsyncValue<void>>((ref) {
+      return CreateReceiveNotifier(
+        CreateReceiveUsecase(ref.watch(transferRepositoryProvider)),
+      );
+    });
+
+class CreateReceiveNotifier extends StateNotifier<AsyncValue<void>> {
+  CreateReceiveNotifier(this._usecase) : super(const AsyncValue.data(null));
+
+  final CreateReceiveUsecase _usecase;
+
+  Future<void> create({required String basketCode}) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => _usecase(basketCode: basketCode));
   }
 }

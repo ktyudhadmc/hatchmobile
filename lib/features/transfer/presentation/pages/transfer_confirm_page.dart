@@ -24,7 +24,8 @@ class TransferConfirmPage extends ConsumerStatefulWidget {
 
 class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
     with AsyncStateHandlerMixin {
-  late final Map<int, TextEditingController> _controllers;
+  late final Map<String, TextEditingController> _controllers;
+  final bool _textFieldGradeReadOnly = true;
 
   @override
   void initState() {
@@ -32,22 +33,24 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
 
     _controllers = {
       for (final grade in widget.basket.grades)
-        grade.id: TextEditingController(
+        grade.grade: TextEditingController(
           text: (grade.receivedQuantity ?? grade.quantity).toString(),
         ),
     };
 
     listenAsync(
-      provider: confirmReceiveProvider,
+      // DISABLE - YUDHA - 20260820
+      // provider: confirmReceiveProvider,
+      // DISABLE - YUDHA - 20260820
+      provider: createReceiveProvider,
       loadingMessage: 'Menyimpan...',
       onData: (_) {
         unawaited(ref.read(receivedBasketsProvider.notifier).fetch());
         ToastHelper.success('Basket berhasil dikonfirmasi');
-        context.pushReplacement('/profile');
+        context.go('/home');
       },
       onError: (err, stack) {
         ToastHelper.error(err.toString());
-        context.pushReplacement('/profile');
       },
     );
   }
@@ -61,18 +64,24 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
   }
 
   void _onConfirm() {
-    final grades = widget.basket.grades.map((grade) {
-      final input = int.tryParse(_controllers[grade.id]!.text) ?? 0;
-      return (id: grade.id, receivedQuantity: input);
-    }).toList();
+    // DISABLE - YUDHA
+    // final grades = widget.basket.grades.map((grade) {
+    //   final input = int.tryParse(_controllers[grade.id]!.text) ?? 0;
+    //   return (id: grade.id, receivedQuantity: input);
+    // }).toList();
+
+    // ref
+    //     .read(confirmReceiveProvider.notifier)
+    //     .confirm(
+    //       transferId: widget.basket.transfer.id,
+    //       transferBasketId: widget.basket.id,
+    //       grades: grades,
+    //     );
+    // END DISABLE - YUDHA
 
     ref
-        .read(confirmReceiveProvider.notifier)
-        .confirm(
-          transferId: widget.basket.transfer.id,
-          transferBasketId: widget.basket.id,
-          grades: grades,
-        );
+        .read(createReceiveProvider.notifier)
+        .create(basketCode: widget.basket.basketCode);
   }
 
   @override
@@ -81,7 +90,13 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Konfirmasi Penerimaan')),
+      appBar: AppBar(
+        title: const Text('Konfirmasi Penerimaan'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/home'),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -128,7 +143,7 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
             'Tanggal',
             DateFormatter.format(basket.transfer.transferDate),
           ),
-          _infoRow('Farm', basket.transfer.branch.name),
+          _infoRow('Farm', basket.transfer.branch),
         ],
       ),
     );
@@ -180,7 +195,8 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
           Expanded(
             flex: 3,
             child: TextField(
-              controller: _controllers[grade.id],
+              readOnly: _textFieldGradeReadOnly,
+              controller: _controllers[grade.grade],
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
               decoration: InputDecoration(

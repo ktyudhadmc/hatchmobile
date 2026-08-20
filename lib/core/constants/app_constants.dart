@@ -5,7 +5,7 @@ class AppConstants {
   static const String appVersion = '0.1.0';
 
   // Toggle this when pointing the app at a local backend during development.
-  static const bool useLocalBackend = false;
+  static const bool useLocalBackend = true;
   static const String _prodBaseUrl = 'https://api-hatchery.appdmc.my.id';
   static const String _localBaseUrl = 'http://192.168.68.181:8000';
   static String get baseUrl => useLocalBackend ? _localBaseUrl : _prodBaseUrl;

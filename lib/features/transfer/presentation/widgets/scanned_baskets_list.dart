@@ -23,15 +23,18 @@ class ScannedBasketsList extends ConsumerWidget {
         _RecapHeader(receivedCount: baskets.length),
         Expanded(
           child: switch (received) {
-            AsyncData(value: final value) when value.isEmpty => const _EmptyState(),
+            AsyncData(value: final value) when value.isEmpty =>
+              const _EmptyState(),
             AsyncError() => const _EmptyState(),
             _ when baskets.isNotEmpty => ListView.separated(
-                padding: const EdgeInsets.all(12),
-                itemCount: baskets.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 6),
-                itemBuilder: (context, index) =>
-                    _BasketTile(basket: baskets[index], scannedByName: scannedByName),
+              padding: const EdgeInsets.all(12),
+              itemCount: baskets.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 6),
+              itemBuilder: (context, index) => _BasketTile(
+                basket: baskets[index],
+                scannedByName: scannedByName,
               ),
+            ),
             _ => const Center(child: CircularProgressIndicator()),
           },
         ),
@@ -48,7 +51,10 @@ class _EmptyState extends StatelessWidget {
     return const Center(
       child: Text(
         'Belum ada basket yang di-scan',
-        style: TextStyle(color: Color(0xFF7B7B7B), fontFamily: AppTheme.fontFamily),
+        style: TextStyle(
+          color: Color(0xFF7B7B7B),
+          fontFamily: AppTheme.fontFamily,
+        ),
       ),
     );
   }
@@ -118,11 +124,18 @@ class _BasketTile extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.check_circle, color: AppTheme.successColor, size: 16),
+                  const Icon(
+                    Icons.check_circle,
+                    color: AppTheme.successColor,
+                    size: 16,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     basket.basketCode,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: AppTheme.fontFamily),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontFamily: AppTheme.fontFamily,
+                    ),
                   ),
                 ],
               ),
@@ -153,7 +166,7 @@ class _BasketTile extends StatelessWidget {
                 ),
               ),
               Text(
-                basket.transfer.branch.name,
+                basket.transfer.branch,
                 style: const TextStyle(
                   color: AppTheme.primaryColor,
                   fontSize: 11,

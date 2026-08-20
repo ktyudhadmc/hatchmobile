@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hatchmobile/features/transfer/domain/entities/transfer_info.dart';
 
 import '../../../../core/errors/app_exception.dart';
 import '../../domain/entities/transfer_basket.dart';
@@ -42,6 +43,15 @@ class TransferRepositoryImpl implements TransferRepository {
   }
 
   @override
+  Future<void> createReceive({required String basketCode}) async {
+    try {
+      await _remote.createReceive(basketCode: basketCode);
+    } on DioException catch (e) {
+      throw _unwrap(e);
+    }
+  }
+
+  @override
   Future<List<TransferBasket>> getReceivedBaskets() async {
     try {
       return await _remote.getReceivedBaskets();
@@ -50,7 +60,18 @@ class TransferRepositoryImpl implements TransferRepository {
     }
   }
 
+  @override
+  Future<List<TransferInfo>> getAllHistoryHeaderReceive() async {
+    try {
+      return await _remote.getAllHistoryHeaderReceive();
+    } on DioException catch (e) {
+      throw _unwrap(e);
+    }
+  }
+
   AppException _unwrap(DioException e) {
-    return e.error is AppException ? e.error as AppException : const AppException('Terjadi kesalahan');
+    return e.error is AppException
+        ? e.error as AppException
+        : const AppException('Terjadi kesalahan');
   }
 }

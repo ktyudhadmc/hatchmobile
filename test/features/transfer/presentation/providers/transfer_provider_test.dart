@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hatchmobile/features/transfer/data/repositories/transfer_repository_impl.dart';
 import 'package:hatchmobile/features/transfer/domain/entities/transfer_basket.dart';
-import 'package:hatchmobile/features/transfer/domain/entities/transfer_branch.dart';
 import 'package:hatchmobile/features/transfer/domain/entities/transfer_grade.dart';
 import 'package:hatchmobile/features/transfer/domain/entities/transfer_info.dart';
 import 'package:hatchmobile/features/transfer/domain/repositories/transfer_repository.dart';
@@ -15,12 +14,15 @@ TransferBasket _basket() {
   return TransferBasket(
     id: 1,
     basketCode: 'A0001',
-    grades: const [TransferGrade(id: 1, grade: 'A', quantity: 1000, receivedQuantity: 1000)],
+    grades: const [
+      TransferGrade(id: 1, grade: 'A', quantity: 1000, receivedQuantity: 1000),
+    ],
     transfer: TransferInfo(
       id: 1,
       transferCode: '15082024TE0002',
       transferDate: DateTime(2024, 1, 15),
-      branch: const TransferBranch(id: 1, name: 'Jabung'),
+      productionDate: DateTime(2024, 1, 1),
+      branch: 'Jabung',
     ),
   );
 }
@@ -44,7 +46,9 @@ void main() {
 
     test('scan success populates the basket', () async {
       final basket = _basket();
-      when(() => repository.getBasketByCode('A0001')).thenAnswer((_) async => basket);
+      when(
+        () => repository.getBasketByCode('A0001'),
+      ).thenAnswer((_) async => basket);
 
       await container.read(scanBasketProvider.notifier).scan('A0001');
 
@@ -52,7 +56,9 @@ void main() {
     });
 
     test('scan failure surfaces the error', () async {
-      when(() => repository.getBasketByCode(any())).thenThrow(Exception('not found'));
+      when(
+        () => repository.getBasketByCode(any()),
+      ).thenThrow(Exception('not found'));
 
       await container.read(scanBasketProvider.notifier).scan('UNKNOWN');
 
@@ -70,7 +76,9 @@ void main() {
         ),
       ).thenAnswer((_) async {});
 
-      await container.read(confirmReceiveProvider.notifier).confirm(
+      await container
+          .read(confirmReceiveProvider.notifier)
+          .confirm(
             transferId: 1,
             transferBasketId: 1,
             grades: const [(id: 1, receivedQuantity: 120)],
@@ -88,7 +96,9 @@ void main() {
         ),
       ).thenThrow(Exception('server error'));
 
-      await container.read(confirmReceiveProvider.notifier).confirm(
+      await container
+          .read(confirmReceiveProvider.notifier)
+          .confirm(
             transferId: 1,
             transferBasketId: 1,
             grades: const [(id: 1, receivedQuantity: 120)],

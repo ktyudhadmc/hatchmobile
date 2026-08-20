@@ -1,12 +1,12 @@
 class TransferGrade {
   const TransferGrade({
-    required this.id,
+    this.id,
     required this.grade,
     required this.quantity,
     this.receivedQuantity,
   });
 
-  final int id;
+  final int? id;
   final String grade;
   final int quantity;
 
