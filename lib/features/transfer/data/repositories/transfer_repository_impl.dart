@@ -41,6 +41,15 @@ class TransferRepositoryImpl implements TransferRepository {
     }
   }
 
+  @override
+  Future<List<TransferBasket>> getReceivedBaskets() async {
+    try {
+      return await _remote.getReceivedBaskets();
+    } on DioException catch (e) {
+      throw _unwrap(e);
+    }
+  }
+
   AppException _unwrap(DioException e) {
     return e.error is AppException ? e.error as AppException : const AppException('Terjadi kesalahan');
   }

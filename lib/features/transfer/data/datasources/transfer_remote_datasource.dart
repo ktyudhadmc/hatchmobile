@@ -4,7 +4,7 @@ import '../../../../core/constants/api_endpoints.dart';
 import '../../../../core/network/api_service.dart';
 import '../models/transfer_basket_model.dart';
 
-import '../../domain/repositories/mock_basket_response.dart';
+// import '../../domain/repositories/mock_basket_response.dart';
 
 final transferRemoteDatasourceProvider = Provider<TransferRemoteDatasource>((
   ref,
@@ -18,12 +18,14 @@ class TransferRemoteDatasource {
   final ApiService _apiService;
 
   Future<TransferBasketModel> getBasketByCode(String code) async {
-    // final response = await _apiService.get(ApiEndpoints.transferBasketByCode(code));
-    // final data = response.data as Map<String, dynamic>;
-    // return TransferBasketModel.fromJson(data['data'] as Map<String, dynamic>);
-    return TransferBasketModel.fromJson(
-      mockBasketResponseJson['data'] as Map<String, dynamic>,
+    final response = await _apiService.get(
+      ApiEndpoints.transferBasketByCode(code),
     );
+    final data = response.data as Map<String, dynamic>;
+    return TransferBasketModel.fromJson(data['data'] as Map<String, dynamic>);
+    // return TransferBasketModel.fromJson(
+    //   mockBasketResponseJson['data'] as Map<String, dynamic>,
+    // );
   }
 
   Future<void> confirmReceive({
@@ -41,5 +43,13 @@ class TransferRemoteDatasource {
             .toList(),
       },
     );
+  }
+
+  Future<List<TransferBasketModel>> getReceivedBaskets() async {
+    final response = await _apiService.get(ApiEndpoints.receivedBaskets);
+    final data = response.data as Map<String, dynamic>;
+    return (data['data'] as List)
+        .map((e) => TransferBasketModel.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }

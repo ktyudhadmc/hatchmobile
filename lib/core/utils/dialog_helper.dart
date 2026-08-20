@@ -36,8 +36,11 @@ class DialogHelper {
     String cancelLabel = 'Batal',
     bool isDanger = false,
   }) async {
-    final fillColor = isDanger ? AppTheme.errorColor : AppTheme.primaryColor;
-    final buttonShape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(8));
+    // final fillColor = isDanger ? AppTheme.errorColor : AppTheme.primaryColor;
+    final fillColor = AppTheme.primaryColor;
+    final buttonShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(8),
+    );
 
     final result = await showDialog<bool>(
       context: context,

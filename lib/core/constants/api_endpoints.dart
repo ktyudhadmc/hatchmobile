@@ -12,5 +12,11 @@ class ApiEndpoints {
   // Transfer basket
   static String transferBasketByCode(String code) =>
       '$_api/transfer-baskets/$code';
+  static const String transferBasket =
+      '$_api/hatchery/egg-receive/app/get-detail-basket';
+
   static const String confirmTransferBasket = '$_api/transfer-baskets/confirm';
+  // Guessed, same as the others above — confirm against the real backend
+  // route. Expected to list baskets this hatchery has already received.
+  static const String receivedBaskets = '$_api/transfer-baskets/received';
 }

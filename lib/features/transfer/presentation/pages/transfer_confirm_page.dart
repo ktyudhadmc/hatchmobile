@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -39,10 +41,14 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
       provider: confirmReceiveProvider,
       loadingMessage: 'Menyimpan...',
       onData: (_) {
+        unawaited(ref.read(receivedBasketsProvider.notifier).fetch());
         ToastHelper.success('Basket berhasil dikonfirmasi');
-        context.pop();
+        context.pushReplacement('/profile');
       },
-      onError: (err, stack) => ToastHelper.error(err.toString()),
+      onError: (err, stack) {
+        ToastHelper.error(err.toString());
+        context.pushReplacement('/profile');
+      },
     );
   }
 
@@ -73,7 +79,7 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
   Widget build(BuildContext context) {
     final basket = widget.basket;
     final screenHeight = MediaQuery.of(context).size.height;
-    
+
     return Scaffold(
       appBar: AppBar(title: const Text('Konfirmasi Penerimaan')),
       body: ListView(
@@ -117,12 +123,12 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           const SizedBox(height: 8),
-          _infoRow('No. Transfer', basket.transfer.transferCode),
+          _infoRow('Kode Transfer', basket.transfer.transferCode),
           _infoRow(
             'Tanggal',
             DateFormatter.format(basket.transfer.transferDate),
           ),
-          _infoRow('Cabang Asal', basket.transfer.branch.name),
+          _infoRow('Farm', basket.transfer.branch.name),
         ],
       ),
     );
