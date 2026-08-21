@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../transfer/presentation/providers/transfer_provider.dart';
+import '../../../transfer/presentation/providers/transfer_history_provider.dart';
 
 const _monthOptions = [1, 3, 6];
 
@@ -40,7 +40,7 @@ class HistorySearchFilterBar extends ConsumerWidget {
               onChanged: (value) =>
                   ref.read(historySearchQueryProvider.notifier).state = value,
               decoration: InputDecoration(
-                hintText: 'Cari kode transfer atau cabang',
+                hintText: 'Cari',
                 hintStyle: const TextStyle(color: Color(0xFF7B7B7B)),
                 prefixIcon: const Icon(Icons.search, color: Color(0xFF7B7B7B)),
                 isDense: true,

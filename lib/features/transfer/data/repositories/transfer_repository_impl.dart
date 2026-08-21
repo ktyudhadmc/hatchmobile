@@ -1,11 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hatchmobile/features/transfer/domain/entities/transfer_info.dart';
+import 'package:hatchmobile/features/transfer/domain/entities/transfer_history/entities.dart';
+import 'package:hatchmobile/features/transfer/domain/entities/transfer_recent/entities.dart';
 
 import '../../../../core/errors/app_exception.dart';
 import '../../domain/entities/transfer_basket.dart';
-import '../../domain/entities/transfer_history_detail.dart';
-import '../../domain/entities/transfer_recent/transfer_recent.dart';
 import '../../domain/repositories/transfer_repository.dart';
 import '../datasources/transfer_remote_datasource.dart';
 
@@ -63,16 +62,18 @@ class TransferRepositoryImpl implements TransferRepository {
   }
 
   @override
-  Future<List<TransferInfo>> getAllHistoryHeaderReceive() async {
+  Future<List<TransferHistory>> getAllHistoryHeaderReceive({
+    required int range,
+  }) async {
     try {
-      return await _remote.getAllHistoryHeaderReceive();
+      return await _remote.getAllHistoryHeaderReceive(range: range);
     } on DioException catch (e) {
       throw _unwrap(e);
     }
   }
 
   @override
-  Future<TransferHistoryDetail> getHistoryDetailReceive(
+  Future<List<TransferHistoryDetail>> getHistoryDetailReceive(
     String transferCode,
   ) async {
     try {

@@ -112,6 +112,8 @@ const Map<String, dynamic> mockAllHistoryHeaderReceiveResponseJson = {
       "transfer_date": "2024-01-15",
       "production_date": "2024-01-14",
       "farm": "Jabung",
+      "sent_basket_count": 20,
+      "received_basket_count": 20,
     },
     {
       "id": 2,
@@ -119,6 +121,8 @@ const Map<String, dynamic> mockAllHistoryHeaderReceiveResponseJson = {
       "transfer_date": "2024-01-16",
       "production_date": "2024-01-15",
       "farm": "Purwosari",
+      "sent_basket_count": 20,
+      "received_basket_count": 20,
     },
     {
       "id": 3,
@@ -126,6 +130,8 @@ const Map<String, dynamic> mockAllHistoryHeaderReceiveResponseJson = {
       "transfer_date": "2024-01-17",
       "production_date": "2024-01-16",
       "farm": "Jabung",
+      "sent_basket_count": 20,
+      "received_basket_count": 20,
     },
   ],
 };
@@ -142,6 +148,56 @@ const Map<String, dynamic> mockHistoryDetailReceiveResponseJson = {
     "basket_receive_count": 2,
     "branch": {"id": 1, "name": "Jabung"},
     "baskets": [
+      {
+        "id": 1,
+        "basket_code": "A0001",
+        "received_at": "2024-01-15T08:30:00",
+        "grades": [
+          {"id": 1, "grade": "A", "quantity": 1000, "received_quantity": 1000},
+          {"id": 2, "grade": "A+", "quantity": 250, "received_quantity": 240},
+        ],
+      },
+      {
+        "id": 2,
+        "basket_code": "A0002",
+        "received_at": "2024-01-15T09:00:00",
+        "grades": [
+          {"id": 3, "grade": "B", "quantity": 800, "received_quantity": 780},
+        ],
+      },
+      {
+        "id": 3,
+        "basket_code": "A0003",
+        "received_at": null,
+        "grades": [
+          {"id": 4, "grade": "C", "quantity": 500, "received_quantity": null},
+        ],
+      },
+      {
+        "id": 1,
+        "basket_code": "A0001",
+        "received_at": "2024-01-15T08:30:00",
+        "grades": [
+          {"id": 1, "grade": "A", "quantity": 1000, "received_quantity": 1000},
+          {"id": 2, "grade": "A+", "quantity": 250, "received_quantity": 240},
+        ],
+      },
+      {
+        "id": 2,
+        "basket_code": "A0002",
+        "received_at": "2024-01-15T09:00:00",
+        "grades": [
+          {"id": 3, "grade": "B", "quantity": 800, "received_quantity": 780},
+        ],
+      },
+      {
+        "id": 3,
+        "basket_code": "A0003",
+        "received_at": null,
+        "grades": [
+          {"id": 4, "grade": "C", "quantity": 500, "received_quantity": null},
+        ],
+      },
       {
         "id": 1,
         "basket_code": "A0001",

@@ -22,8 +22,8 @@ class TransferRecentModel extends TransferRecent {
       ),
       productionDate: DateTime.parse(json['production_date'] as String),
       branch: json['farm'] as String,
-      sentbasketCount: json['sent_basket_count'] as int?,
-      receivedBasketCount: json['received_basket_count'] as int?,
+      sentbasketCount: json['basket_shipped'] as int?,
+      receivedBasketCount: json['basket_received'] as int?,
       baskets: json['items'] == null
           ? null
           : (json['items'] as List)

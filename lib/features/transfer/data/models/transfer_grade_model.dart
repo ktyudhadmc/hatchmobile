@@ -16,4 +16,10 @@ class TransferGradeModel extends TransferGrade {
       receivedQuantity: json['received_quantity'] as int?,
     );
   }
+
+  static List<TransferGradeModel> fromJsonList(List<dynamic> json) {
+    return json
+        .map((e) => TransferGradeModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
 }

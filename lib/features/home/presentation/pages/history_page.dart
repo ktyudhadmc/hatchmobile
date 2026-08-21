@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../shared/widgets/bottom_bar_navigation.dart';
 import '../../../../shared/widgets/refreshable_view.dart';
-import '../../../transfer/presentation/providers/transfer_provider.dart';
+import '../../../transfer/presentation/providers/transfer_history_provider.dart';
 import '../widgets/history_header_list.dart';
 import '../widgets/history_search_filter_bar.dart';
 

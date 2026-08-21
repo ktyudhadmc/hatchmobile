@@ -1,4 +1,5 @@
-import '../entities/transfer_history_detail.dart';
+import 'package:hatchmobile/features/transfer/domain/entities/transfer_history/entities.dart';
+
 import '../repositories/transfer_repository.dart';
 
 class GetHistoryDetailReceiveUsecase {
@@ -6,6 +7,6 @@ class GetHistoryDetailReceiveUsecase {
 
   final TransferRepository _repository;
 
-  Future<TransferHistoryDetail> call(String transferCode) =>
+  Future<List<TransferHistoryDetail>> call(String transferCode) =>
       _repository.getHistoryDetailReceive(transferCode);
 }

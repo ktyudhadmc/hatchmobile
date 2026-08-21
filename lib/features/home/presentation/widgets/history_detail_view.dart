@@ -4,63 +4,56 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../transfer/domain/entities/transfer_grade.dart';
-import '../../../transfer/domain/entities/transfer_history_basket.dart';
-import '../../../transfer/domain/entities/transfer_history_detail.dart';
+import '../../../transfer/domain/entities/transfer_history/entities.dart';
 
+/// Detail panel for one Riwayat header. [header] is already in hand from
+/// the list that was tapped, so the summary (code/date/branch/counts)
+/// renders immediately; [detail] is the riwayat-detail API call in flight
+/// for [header.transferCode]'s received baskets.
 class HistoryDetailView extends StatelessWidget {
   const HistoryDetailView({
     super.key,
+    required this.header,
     required this.detail,
-    required this.hasHeaders,
+    this.scrollController,
   });
 
-  final AsyncValue<TransferHistoryDetail?> detail;
-  final bool hasHeaders;
+  final TransferHistory header;
+  final AsyncValue<List<TransferHistoryDetail>> detail;
+  final ScrollController? scrollController;
 
   @override
   Widget build(BuildContext context) {
-    return switch (detail) {
-      AsyncError() => const _FillScrollView(
-        child: _Placeholder(
-          message: 'Gagal memuat detail riwayat',
-          icon: Icons.error_outline,
-        ),
-      ),
-      AsyncData(value: null) => _FillScrollView(
-        child: _Placeholder(
-          message: hasHeaders
-              ? 'Pilih riwayat transfer untuk melihat detail'
-              : 'Belum ada riwayat transfer',
-          icon: Icons.history_rounded,
-        ),
-      ),
-      AsyncData(value: final value) => _DetailContent(detail: value!),
-      _ => const _FillScrollView(
-        child: Center(child: CircularProgressIndicator()),
-      ),
-    };
-  }
-}
-
-/// Makes non-list states (loading/empty/error) scrollable too, filling the
-/// available height — so [RefreshIndicator]'s pull gesture has a
-/// [Scrollable] to attach to even when there's no list to naturally scroll.
-class _FillScrollView extends StatelessWidget {
-  const _FillScrollView({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            SizedBox(height: constraints.maxHeight, child: child),
-          ],
-        );
-      },
+    return ListView(
+      controller: scrollController,
+      padding: const EdgeInsets.all(16),
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        _SummaryCard(header: header),
+        const SizedBox(height: 16),
+        Text('Daftar Basket', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        switch (detail) {
+          AsyncError() => const _Placeholder(
+            message: 'Gagal memuat detail riwayat',
+            icon: Icons.error_outline,
+          ),
+          AsyncData(value: final baskets) when baskets.isEmpty =>
+            const _Placeholder(
+              message: 'Belum ada basket diterima',
+              icon: Icons.inventory_2_outlined,
+            ),
+          AsyncData(value: final baskets) => Column(
+            children: baskets
+                .map((basket) => _BasketCard(basket: basket))
+                .toList(),
+          ),
+          _ => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        },
+      ],
     );
   }
 }
@@ -73,95 +66,50 @@ class _Placeholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 40, color: const Color(0xFF7B7B7B)),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFF7B7B7B),
-              fontFamily: AppTheme.fontFamily,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 40, color: const Color(0xFF7B7B7B)),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF7B7B7B),
+                fontFamily: AppTheme.fontFamily,
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailContent extends StatelessWidget {
-  const _DetailContent({required this.detail});
-
-  final TransferHistoryDetail detail;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      physics: const AlwaysScrollableScrollPhysics(),
-      children: [
-        _SummaryCard(detail: detail),
-        const SizedBox(height: 16),
-        Text(
-          'Daftar Basket',
-          style: Theme.of(context).textTheme.titleMedium,
+          ],
         ),
-        const SizedBox(height: 8),
-        ...detail.baskets.map((basket) => _BasketCard(basket: basket)),
-      ],
+      ),
     );
   }
 }
 
 class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.detail});
+  const _SummaryCard({required this.header});
 
-  final TransferHistoryDetail detail;
+  final TransferHistory header;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xffF5F8FA)),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Color(0x19000000), blurRadius: 6)],
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            detail.transferCode,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            header.transferCode,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 8),
-          _infoRow('Tanggal', DateFormatter.format(detail.transferDate)),
-          _infoRow('Cabang', detail.branch.name),
-          const Divider(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _StatTile(
-                  label: 'Dikirim',
-                  value: detail.basketSendCount,
-                  color: AppTheme.primaryColor,
-                ),
-              ),
-              Expanded(
-                child: _StatTile(
-                  label: 'Diterima',
-                  value: detail.basketReceiveCount,
-                  color: AppTheme.successColor,
-                ),
-              ),
-            ],
-          ),
+          _infoRow('Transfer date', DateFormatter.format(header.transferDate)),
+          _infoRow('Farm', header.branch),
+          _infoRow('Shipped', (header.sentbasketCount ?? 0).toString()),
+          _infoRow('Received', (header.sentbasketCount ?? 0).toString()),
         ],
       ),
     );
@@ -173,47 +121,16 @@ class _SummaryCard extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Color(0xFF7B7B7B))),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: const TextStyle(color: Color(0xFF7B7B7B), fontSize: 12),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+          ),
         ],
       ),
-    );
-  }
-}
-
-class _StatTile extends StatelessWidget {
-  const _StatTile({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final int value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          '$value',
-          style: TextStyle(
-            color: color,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            fontFamily: AppTheme.fontFamily,
-          ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFF7B7B7B),
-            fontSize: 12,
-            fontFamily: AppTheme.fontFamily,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -221,7 +138,7 @@ class _StatTile extends StatelessWidget {
 class _BasketCard extends StatelessWidget {
   const _BasketCard({required this.basket});
 
-  final TransferHistoryBasket basket;
+  final TransferHistoryDetail basket;
 
   @override
   Widget build(BuildContext context) {

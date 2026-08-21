@@ -1,4 +1,5 @@
-import '../entities/transfer_info.dart';
+import 'package:hatchmobile/features/transfer/domain/entities/transfer_history/entities.dart';
+
 import '../repositories/transfer_repository.dart';
 
 class GetAllHistoryHeaderReceive {
@@ -6,5 +7,6 @@ class GetAllHistoryHeaderReceive {
 
   final TransferRepository _repository;
 
-  Future<List<TransferInfo>> call() => _repository.getAllHistoryHeaderReceive();
+  Future<List<TransferHistory>> call({required int range}) =>
+      _repository.getAllHistoryHeaderReceive(range: range);
 }

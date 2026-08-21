@@ -3,12 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/date_formatter.dart';
-import '../../../transfer/domain/entities/transfer_info.dart';
-import '../../../transfer/presentation/providers/transfer_provider.dart';
+import '../../../transfer/domain/entities/transfer_history/entities.dart';
+import '../../../transfer/presentation/providers/transfer_history_provider.dart';
+import 'history_detail_sheet.dart';
 
-/// Vertical list of transfer headers, narrowed by
-/// [filteredHistoryHeadersProvider]. Tapping a header will open its detail
-/// (transfer info + basket list) in a follow-up — not wired yet.
 class HistoryHeaderList extends ConsumerWidget {
   const HistoryHeaderList({super.key});
 
@@ -49,14 +47,14 @@ class HistoryHeaderList extends ConsumerWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       itemCount: headers.length,
       separatorBuilder: (context, index) => const SizedBox(height: 8),
-      itemBuilder: (context, index) => _HeaderCard(header: headers[index]),
+      itemBuilder: (context, index) => _HeaderCard(
+        header: headers[index],
+        onTap: () => showHistoryDetailSheet(context, ref, headers[index]),
+      ),
     );
   }
 }
 
-/// Makes non-list states (loading/empty/error) scrollable too, filling the
-/// available height — so pull-to-refresh has a [Scrollable] to attach to
-/// even when there's no list to naturally scroll.
 class _FillScrollView extends StatelessWidget {
   const _FillScrollView({required this.child});
 
@@ -104,36 +102,64 @@ class _Placeholder extends StatelessWidget {
 }
 
 class _HeaderCard extends StatelessWidget {
-  const _HeaderCard({required this.header});
+  const _HeaderCard({required this.header, required this.onTap});
 
-  final TransferInfo header;
+  final TransferHistory header;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xffF5F8FA)),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Color(0x19000000), blurRadius: 6)],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: const Color(0xffF5F8FA)),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(color: Color(0x19000000), blurRadius: 6),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    header.transferCode,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontFamily: AppTheme.fontFamily,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    DateFormatter.format(header.transferDate),
+                    style: const TextStyle(
+                      color: Color(0xFF7B7B7B),
+                      fontSize: 12,
+                      fontFamily: AppTheme.fontFamily,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Column(
               children: [
                 Text(
-                  header.transferCode,
+                  header.branch,
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                     fontFamily: AppTheme.fontFamily,
                   ),
                 ),
-                const SizedBox(height: 4),
                 Text(
-                  DateFormatter.format(header.transferDate),
+                  'Received: ${header.receivedBasketCount ?? 0}',
                   style: const TextStyle(
                     color: Color(0xFF7B7B7B),
                     fontSize: 12,
@@ -142,17 +168,8 @@ class _HeaderCard extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-          Text(
-            header.branch,
-            style: const TextStyle(
-              color: AppTheme.primaryColor,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              fontFamily: AppTheme.fontFamily,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
