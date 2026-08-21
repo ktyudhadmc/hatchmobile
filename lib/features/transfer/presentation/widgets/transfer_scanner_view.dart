@@ -78,16 +78,8 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView>
 
   @override
   Widget build(BuildContext context) {
-    // return ScannerView(
-    //   controller: _controller, // ← pass controller dari luar
-    //   isBusy: _isBusy,
-    //   hint: 'Arahkan kamera ke QR code basket',
-    //   onDetect: (code) {
-    //     print('🔍 [SCAN] code: $code | isBusy: $_isBusy');
-    //     _setBusy(true);
-    //     ref.read(scanBasketProvider.notifier).scan(code);
-    //   },
-    // );
+    final screenHeight = MediaQuery.of(context).size.height;
+
     final builder =
         widget.scannerBuilder ??
         ({required onDetect, required isBusy, controller}) => ScannerView(
@@ -95,6 +87,7 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView>
           isBusy: isBusy,
           onDetect: onDetect,
           hint: 'Arahkan kamera ke QR code basket',
+          centerOffsetY: screenHeight * 0.18,
         );
 
     return builder(

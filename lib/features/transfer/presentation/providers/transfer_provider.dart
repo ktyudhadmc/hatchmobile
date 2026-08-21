@@ -129,9 +129,8 @@ class CreateReceiveNotifier extends StateNotifier<AsyncValue<void>> {
   }
 }
 
-/// Transfer headers for the Riwayat (history) pill filter — fetched once
-/// when the provider is first read, same eager pattern as
-/// [receivedBasketsProvider].
+/// Transfer headers for the Riwayat (history) list — fetched once when the
+/// provider is first read, same eager pattern as [receivedBasketsProvider].
 final historyHeadersProvider =
     StateNotifierProvider<HistoryHeadersNotifier, AsyncValue<List<TransferInfo>>>((
       ref,
@@ -151,6 +150,33 @@ class HistoryHeadersNotifier
     state = await AsyncValue.guard(_usecase.call);
   }
 }
+
+/// Free-text search over the Riwayat header list — matched client-side
+/// against transfer code / branch, since [historyHeadersProvider] already
+/// holds the full list.
+final historySearchQueryProvider = StateProvider<String>((ref) => '');
+
+/// "Last N months" filter for the Riwayat header list — one of 1, 3, 6.
+final historyMonthsFilterProvider = StateProvider<int>((ref) => 1);
+
+/// [historyHeadersProvider], narrowed by [historySearchQueryProvider] and
+/// [historyMonthsFilterProvider].
+final filteredHistoryHeadersProvider = Provider<List<TransferInfo>>((ref) {
+  final headers = ref.watch(historyHeadersProvider).valueOrNull ?? const [];
+  final query = ref.watch(historySearchQueryProvider).trim().toLowerCase();
+  final months = ref.watch(historyMonthsFilterProvider);
+
+  final cutoff = DateTime.now().subtract(Duration(days: months * 30));
+
+  return headers.where((header) {
+    final matchesQuery =
+        query.isEmpty ||
+        header.transferCode.toLowerCase().contains(query) ||
+        header.branch.toLowerCase().contains(query);
+    final matchesRange = !header.transferDate.isBefore(cutoff);
+    return matchesQuery && matchesRange;
+  }).toList();
+});
 
 /// Which history pill is currently selected, by `transferCode`.
 final selectedTransferCodeProvider = StateProvider<String?>((ref) => null);
