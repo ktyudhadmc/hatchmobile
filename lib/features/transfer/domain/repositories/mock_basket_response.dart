@@ -45,7 +45,8 @@ const Map<String, dynamic> mockReceivedBasketsResponseJson = {
         "id": 1,
         "transfer_code": "15082024TE0002",
         "transfer_date": "2024-01-15",
-        "branch": {"id": 1, "name": "Jabung"},
+        "production_date": "2024-01-14",
+        "farm": "Jabung",
       },
     },
     {
@@ -59,7 +60,8 @@ const Map<String, dynamic> mockReceivedBasketsResponseJson = {
         "id": 1,
         "transfer_code": "15082024TE0002",
         "transfer_date": "2024-01-15",
-        "branch": {"id": 1, "name": "Jabung"},
+        "production_date": "2024-01-14",
+        "farm": "Jabung",
       },
     },
     {
@@ -72,7 +74,8 @@ const Map<String, dynamic> mockReceivedBasketsResponseJson = {
         "id": 2,
         "transfer_code": "16082024TE0009",
         "transfer_date": "2024-01-16",
-        "branch": {"id": 2, "name": "Purwosari"},
+        "production_date": "2024-01-15",
+        "farm": "Purwosari",
       },
     },
   ],
@@ -96,4 +99,81 @@ const Map<String, dynamic> mockBasketAlreadyReceivedResponseJson = {
       "branch": {"id": 1, "name": "Jabung"},
     },
   },
+};
+
+/// Mock response untuk endpoint getAllHistoryHeaderReceive (list header riwayat transfer)
+const Map<String, dynamic> mockAllHistoryHeaderReceiveResponseJson = {
+  "status": true,
+  "message": "Berhasil mengambil data riwayat transfer",
+  "data": [
+    {
+      "id": 1,
+      "transfer_code": "15082024TE0001",
+      "transfer_date": "2024-01-15",
+      "production_date": "2024-01-14",
+      "farm": "Jabung",
+    },
+    {
+      "id": 2,
+      "transfer_code": "16082024TE0009",
+      "transfer_date": "2024-01-16",
+      "production_date": "2024-01-15",
+      "farm": "Purwosari",
+    },
+    {
+      "id": 3,
+      "transfer_code": "17082024TE0003",
+      "transfer_date": "2024-01-17",
+      "production_date": "2024-01-16",
+      "farm": "Jabung",
+    },
+  ],
+};
+
+/// Mock response untuk endpoint getHistoryDetailReceive (detail satu transfer)
+const Map<String, dynamic> mockHistoryDetailReceiveResponseJson = {
+  "status": true,
+  "message": "Berhasil mengambil detail riwayat transfer",
+  "data": {
+    "id": 1,
+    "transfer_code": "15082024TE0001",
+    "transfer_date": "2024-01-15",
+    "basket_send_count": 3,
+    "basket_receive_count": 2,
+    "branch": {"id": 1, "name": "Jabung"},
+    "baskets": [
+      {
+        "id": 1,
+        "basket_code": "A0001",
+        "received_at": "2024-01-15T08:30:00",
+        "grades": [
+          {"id": 1, "grade": "A", "quantity": 1000, "received_quantity": 1000},
+          {"id": 2, "grade": "A+", "quantity": 250, "received_quantity": 240},
+        ],
+      },
+      {
+        "id": 2,
+        "basket_code": "A0002",
+        "received_at": "2024-01-15T09:00:00",
+        "grades": [
+          {"id": 3, "grade": "B", "quantity": 800, "received_quantity": 780},
+        ],
+      },
+      {
+        "id": 3,
+        "basket_code": "A0003",
+        "received_at": null,
+        "grades": [
+          {"id": 4, "grade": "C", "quantity": 500, "received_quantity": null},
+        ],
+      },
+    ],
+  },
+};
+
+/// Contoh mock untuk kasus detail riwayat tidak ditemukan
+const Map<String, dynamic> mockHistoryDetailNotFoundResponseJson = {
+  "status": false,
+  "message": "Riwayat tidak ditemukan",
+  "data": null,
 };

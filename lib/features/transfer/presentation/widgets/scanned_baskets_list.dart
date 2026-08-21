@@ -2,43 +2,62 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../domain/entities/transfer_basket.dart';
+import '../../../../shared/widgets/sheets/expandable_bottom_sheet.dart';
+import '../../domain/entities/transfer_recent/entities.dart';
 import '../providers/transfer_provider.dart';
+
+typedef _ReceivedEntry = ({TransferRecent transfer, TransferRecentBasket basket});
 
 /// Baskets this hatchery has received, straight from the backend — no
 /// local/client-side tracking. A failed confirm just isn't in this list
-/// until the user retries and it succeeds.
+/// until the user retries and it succeeds. Collapsed to just its title by
+/// default; the user drags it up to see the list.
 class ScannedBasketsList extends ConsumerWidget {
   const ScannedBasketsList({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final received = ref.watch(receivedBasketsProvider);
-    final baskets = received.valueOrNull ?? const <TransferBasket>[];
-    final scannedByName = ref.watch(authProvider).valueOrNull?.name;
+    final recents = ref.watch(recentsReceiveProvider);
+    final transfers = recents.valueOrNull ?? const <TransferRecent>[];
+    final entries = <_ReceivedEntry>[
+      for (final transfer in transfers)
+        for (final basket in transfer.baskets ?? const <TransferRecentBasket>[])
+          (transfer: transfer, basket: basket),
+    ];
 
-    return Column(
-      children: [
-        _RecapHeader(receivedCount: baskets.length),
-        Expanded(
-          child: switch (received) {
-            AsyncData(value: final value) when value.isEmpty =>
-              const _EmptyState(),
-            AsyncError() => const _EmptyState(),
-            _ when baskets.isNotEmpty => ListView.separated(
-              padding: const EdgeInsets.all(12),
-              itemCount: baskets.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 6),
-              itemBuilder: (context, index) => _BasketTile(
-                basket: baskets[index],
-                scannedByName: scannedByName,
-              ),
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final minSizeFraction = (screenHeight * 0.18 / screenHeight);
+    final maxSizeFraction = (screenHeight * 0.5 / screenHeight);
+    return ExpandableInfoSheet(
+      title: 'Keranjang diterima',
+      minSizeFraction: minSizeFraction,
+      maxSizeFraction: maxSizeFraction,
+      contentBuilder: (context, scrollController) {
+        if (entries.isNotEmpty) {
+          return ListView.separated(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            itemCount: entries.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 6),
+            itemBuilder: (context, index) => _BasketTile(
+              transfer: entries[index].transfer,
+              basket: entries[index].basket,
             ),
-            _ => const Center(child: CircularProgressIndicator()),
-          },
-        ),
-      ],
+          );
+        }
+
+        final placeholder = recents is AsyncLoading
+            ? const Center(child: CircularProgressIndicator())
+            : const _EmptyState();
+
+        // Wrapped in a scrollable using the sheet's own controller so the
+        // sheet can still be dragged open even with no list to drag on.
+        return ListView(
+          controller: scrollController,
+          children: [SizedBox(height: 200, child: placeholder)],
+        );
+      },
     );
   }
 }
@@ -60,51 +79,11 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _RecapHeader extends StatelessWidget {
-  const _RecapHeader({required this.receivedCount});
-
-  final int receivedCount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xffF5F8FA))),
-      ),
-      child: Row(
-        children: [
-          Text(
-            '$receivedCount',
-            style: const TextStyle(
-              color: AppTheme.successColor,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              fontFamily: AppTheme.fontFamily,
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            'Keranjang diterima',
-            style: TextStyle(
-              color: Color(0xFF7B7B7B),
-              fontSize: 12,
-              fontFamily: AppTheme.fontFamily,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _BasketTile extends StatelessWidget {
-  const _BasketTile({required this.basket, required this.scannedByName});
+  const _BasketTile({required this.transfer, required this.basket});
 
-  final TransferBasket basket;
-  final String? scannedByName;
+  final TransferRecent transfer;
+  final TransferRecentBasket basket;
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +91,6 @@ class _BasketTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: const Color(0xffF5F8FA)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -140,7 +118,7 @@ class _BasketTile extends StatelessWidget {
                 ],
               ),
               Text(
-                basket.transfer.transferCode,
+                transfer.transferCode,
                 style: const TextStyle(
                   color: Color(0xFF7B7B7B),
                   fontSize: 11,
@@ -155,7 +133,7 @@ class _BasketTile extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  scannedByName != null ? 'Discan oleh $scannedByName' : '',
+                  'Discan oleh ${basket.blamed.receivedBy}',
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFF7B7B7B),
@@ -166,7 +144,7 @@ class _BasketTile extends StatelessWidget {
                 ),
               ),
               Text(
-                basket.transfer.branch,
+                transfer.branch,
                 style: const TextStyle(
                   color: AppTheme.primaryColor,
                   fontSize: 11,

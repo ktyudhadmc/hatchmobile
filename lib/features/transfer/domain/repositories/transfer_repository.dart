@@ -2,6 +2,7 @@ import 'package:hatchmobile/features/transfer/domain/entities/transfer_info.dart
 
 import '../entities/transfer_basket.dart';
 import '../entities/transfer_history_detail.dart';
+import '../entities/transfer_recent/transfer_recent.dart';
 
 abstract class TransferRepository {
   Future<TransferBasket> getBasketByCode(String code);
@@ -24,4 +25,7 @@ abstract class TransferRepository {
   Future<List<TransferInfo>> getAllHistoryHeaderReceive();
 
   Future<TransferHistoryDetail> getHistoryDetailReceive(String transferCode);
+
+  // GET ONGOING/RECENT TRANSFER RECEIVE SESSIONS
+  Future<List<TransferRecent>> getRecentsReceive();
 }
