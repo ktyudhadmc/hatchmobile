@@ -35,4 +35,10 @@ class TransferRecentModel extends TransferRecent {
                 .toList(),
     );
   }
+
+  static List<TransferRecentModel> fromJsonList(List<dynamic> json) {
+    return json
+        .map((e) => TransferRecentModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
 }

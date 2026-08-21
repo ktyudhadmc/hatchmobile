@@ -20,19 +20,48 @@ class HistoryDetailView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (detail) {
-      AsyncError() => _Placeholder(
-        message: 'Gagal memuat detail riwayat',
-        icon: Icons.error_outline,
+      AsyncError() => const _FillScrollView(
+        child: _Placeholder(
+          message: 'Gagal memuat detail riwayat',
+          icon: Icons.error_outline,
+        ),
       ),
-      AsyncData(value: null) => _Placeholder(
-        message: hasHeaders
-            ? 'Pilih riwayat transfer untuk melihat detail'
-            : 'Belum ada riwayat transfer',
-        icon: Icons.history_rounded,
+      AsyncData(value: null) => _FillScrollView(
+        child: _Placeholder(
+          message: hasHeaders
+              ? 'Pilih riwayat transfer untuk melihat detail'
+              : 'Belum ada riwayat transfer',
+          icon: Icons.history_rounded,
+        ),
       ),
       AsyncData(value: final value) => _DetailContent(detail: value!),
-      _ => const Center(child: CircularProgressIndicator()),
+      _ => const _FillScrollView(
+        child: Center(child: CircularProgressIndicator()),
+      ),
     };
+  }
+}
+
+/// Makes non-list states (loading/empty/error) scrollable too, filling the
+/// available height — so [RefreshIndicator]'s pull gesture has a
+/// [Scrollable] to attach to even when there's no list to naturally scroll.
+class _FillScrollView extends StatelessWidget {
+  const _FillScrollView({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(height: constraints.maxHeight, child: child),
+          ],
+        );
+      },
+    );
   }
 }
 
@@ -73,6 +102,7 @@ class _DetailContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(16),
+      physics: const AlwaysScrollableScrollPhysics(),
       children: [
         _SummaryCard(detail: detail),
         const SizedBox(height: 16),

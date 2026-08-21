@@ -22,4 +22,10 @@ class TransferBasketModel extends TransferBasket {
       ),
     );
   }
+
+  static List<TransferBasketModel> fromJsonList(List<dynamic> json) {
+    return json
+        .map((e) => TransferBasketModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
 }

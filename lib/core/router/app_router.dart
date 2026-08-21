@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,15 +11,26 @@ import '../../features/transfer/domain/entities/transfer_basket.dart';
 import '../../features/transfer/presentation/pages/scan_page.dart';
 import '../../features/transfer/presentation/pages/transfer_confirm_page.dart';
 
+/// Notifies go_router whenever [authProvider] changes, so it re-runs
+/// `redirect` on whatever page the user is currently on. Deliberately not
+/// `ref.watch`-ing authProvider directly inside routerProvider itself —
+/// that would rebuild this whole provider (and therefore construct a brand
+/// new GoRouter) on every auth change, which resets navigation back to
+/// `initialLocation` regardless of where the user actually was.
+class _AuthRefreshListenable extends ChangeNotifier {
+  _AuthRefreshListenable(Ref ref) {
+    ref.listen<AsyncValue<Object?>>(authProvider, (_, _) => notifyListeners());
+  }
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
-  // Watching authProvider recreates the router (and re-runs redirect) on
-  // every login/logout/session-restore, so navigation always reflects the
-  // latest auth state.
-  final authState = ref.watch(authProvider);
+  final authRefreshListenable = _AuthRefreshListenable(ref);
 
   return GoRouter(
     initialLocation: '/splash',
+    refreshListenable: authRefreshListenable,
     redirect: (context, state) {
+      final authState = ref.read(authProvider);
       final isLoading = authState.isLoading;
       final isAuthenticated = authState.valueOrNull != null;
       final isSplash = state.matchedLocation == '/splash';

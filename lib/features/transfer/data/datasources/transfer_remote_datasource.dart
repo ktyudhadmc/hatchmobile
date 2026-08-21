@@ -86,9 +86,7 @@ class TransferRemoteDatasource {
   Future<List<TransferBasketModel>> getReceivedBaskets() async {
     final response = await _apiService.get(ApiEndpoints.receivedBaskets);
     final data = response.data as Map<String, dynamic>;
-    return (data['data'] as List)
-        .map((e) => TransferBasketModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return TransferBasketModel.fromJsonList(data['data'] as List);
 
     // final data = mockReceivedBasketsResponseJson;
     // return (data['data'] as List)
@@ -106,45 +104,41 @@ class TransferRemoteDatasource {
     //     .toList();
 
     final data = mockAllHistoryHeaderReceiveResponseJson;
-    return (data['data'] as List)
-        .map((e) => TransferInfoModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return TransferInfoModel.fromJsonList(data['data'] as List);
   }
 
   Future<TransferHistoryDetailModel> getHistoryDetailReceive(
     String transferCode,
   ) async {
-    // final response = await _apiService.get(
-    //   ApiEndpoints.getHistoryDetailReceive,
-    //   queryParameters: {'transfer_code': transferCode},
-    // );
-    // final data = response.data as Map<String, dynamic>;
-    // final detailData = data['data'];
-    // if (data['status'] != true || detailData is! Map<String, dynamic>) {
-    //   throw NotFoundException(
-    //     (data['message'] as String?) ?? 'Riwayat tidak ditemukan',
-    //   );
-    // }
-    // return TransferHistoryDetailModel.fromJson(detailData);
-
-    final data = mockHistoryDetailReceiveResponseJson;
+    final response = await _apiService.get(
+      ApiEndpoints.getHistoryDetailReceive,
+      queryParameters: {'id_transfer': transferCode},
+    );
+    final data = response.data as Map<String, dynamic>;
     final detailData = data['data'];
-
     if (data['status'] != true || detailData is! Map<String, dynamic>) {
       throw NotFoundException(
         (data['message'] as String?) ?? 'Riwayat tidak ditemukan',
       );
     }
-
     return TransferHistoryDetailModel.fromJson(detailData);
+
+    // final data = mockHistoryDetailReceiveResponseJson;
+    // final detailData = data['data'];
+
+    // if (data['status'] != true || detailData is! Map<String, dynamic>) {
+    //   throw NotFoundException(
+    //     (data['message'] as String?) ?? 'Riwayat tidak ditemukan',
+    //   );
+    // }
+
+    // return TransferHistoryDetailModel.fromJson(detailData);
   }
 
   Future<List<TransferRecentModel>> getRecentsReceive() async {
     final response = await _apiService.get(ApiEndpoints.getRecentsReceive);
     final data = response.data as Map<String, dynamic>;
 
-    return (data['data'] as List)
-        .map((e) => TransferRecentModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return TransferRecentModel.fromJsonList(data['data'] as List);
   }
 }

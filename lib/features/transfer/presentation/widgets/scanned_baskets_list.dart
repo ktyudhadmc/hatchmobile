@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/widgets/refreshable_view.dart';
 import '../../../../shared/widgets/sheets/expandable_bottom_sheet.dart';
 import '../../domain/entities/transfer_recent/entities.dart';
 import '../providers/transfer_provider.dart';
@@ -33,29 +34,38 @@ class ScannedBasketsList extends ConsumerWidget {
       title: 'Keranjang diterima',
       minSizeFraction: minSizeFraction,
       maxSizeFraction: maxSizeFraction,
+      // Deliberately not using the scrollController the sheet builder hands
+      // out: attaching it to a scrollable opts into DraggableScrollableSheet's
+      // own scroll-linked resize, which intercepts the pull-down gesture at
+      // the top of the list to resize the sheet instead of letting it reach
+      // RefreshIndicator as an overscroll. Resize is already fully handled
+      // by the header's own GestureDetector, so the content list gets its
+      // own independent controller and behaves like a normal refreshable list.
       contentBuilder: (context, scrollController) {
-        if (entries.isNotEmpty) {
-          return ListView.separated(
-            controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            itemCount: entries.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 6),
-            itemBuilder: (context, index) => _BasketTile(
-              transfer: entries[index].transfer,
-              basket: entries[index].basket,
-            ),
-          );
-        }
-
-        final placeholder = recents is AsyncLoading
-            ? const Center(child: CircularProgressIndicator())
-            : const _EmptyState();
-
-        // Wrapped in a scrollable using the sheet's own controller so the
-        // sheet can still be dragged open even with no list to drag on.
-        return ListView(
-          controller: scrollController,
-          children: [SizedBox(height: 200, child: placeholder)],
+        return RefreshableView(
+          onRefresh: () => ref.read(recentsReceiveProvider.notifier).fetch(),
+          child: entries.isNotEmpty
+              ? ListView.separated(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  itemCount: entries.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 6),
+                  itemBuilder: (context, index) => _BasketTile(
+                    transfer: entries[index].transfer,
+                    basket: entries[index].basket,
+                  ),
+                )
+              : ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    SizedBox(
+                      height: 200,
+                      child: recents is AsyncLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : const _EmptyState(),
+                    ),
+                  ],
+                ),
         );
       },
     );

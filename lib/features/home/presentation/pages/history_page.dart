@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/widgets/bottom_bar_navigation.dart';
+import '../../../../shared/widgets/refreshable_view.dart';
 import '../../../transfer/presentation/providers/transfer_provider.dart';
 import '../widgets/history_detail_view.dart';
 import '../widgets/history_filter_pills.dart';
@@ -17,6 +18,15 @@ class HistoryPage extends ConsumerWidget {
   void _select(WidgetRef ref, String transferCode) {
     ref.read(selectedTransferCodeProvider.notifier).state = transferCode;
     ref.read(historyDetailProvider.notifier).load(transferCode);
+  }
+
+  Future<void> _refresh(WidgetRef ref) async {
+    final selected = ref.read(selectedTransferCodeProvider);
+
+    await Future.wait([
+      ref.read(historyHeadersProvider.notifier).fetch(),
+      if (selected != null) ref.read(historyDetailProvider.notifier).load(selected),
+    ]);
   }
 
   @override
@@ -50,9 +60,12 @@ class HistoryPage extends ConsumerWidget {
               onSelect: (code) => _select(ref, code),
             ),
           Expanded(
-            child: HistoryDetailView(
-              detail: detail,
-              hasHeaders: (headers.valueOrNull ?? const []).isNotEmpty,
+            child: RefreshableView(
+              onRefresh: () => _refresh(ref),
+              child: HistoryDetailView(
+                detail: detail,
+                hasHeaders: (headers.valueOrNull ?? const []).isNotEmpty,
+              ),
             ),
           ),
         ],
