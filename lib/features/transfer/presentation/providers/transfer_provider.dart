@@ -2,8 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/repositories/transfer_repository_impl.dart';
 import '../../domain/entities/transfer_basket.dart';
+import '../../domain/entities/transfer_recent/transfer_recent.dart';
 import '../../domain/usecases/confirm_receive_usecase.dart';
 import '../../domain/usecases/get_received_baskets_usecase.dart';
+import '../../domain/usecases/get_recents_receive_usecase.dart';
 import '../../domain/usecases/scan_basket_usecase.dart';
 import '../../domain/usecases/create_receive_usecase.dart';
 
@@ -47,6 +49,30 @@ class ReceivedBasketsNotifier
   ReceivedBasketsNotifier(this._usecase) : super(const AsyncValue.loading());
 
   final GetReceivedBasketsUsecase _usecase;
+
+  Future<void> fetch() async {
+    state = await AsyncValue.guard(_usecase.call);
+  }
+}
+
+/// Ongoing/recent receive sessions — each with the baskets already received
+/// under it, blame (who + when) included. Backs the "Keranjang diterima"
+/// sheet on the scan page.
+final recentsReceiveProvider =
+    StateNotifierProvider<
+      RecentsReceiveNotifier,
+      AsyncValue<List<TransferRecent>>
+    >((ref) {
+      return RecentsReceiveNotifier(
+        GetRecentsReceiveUsecase(ref.watch(transferRepositoryProvider)),
+      )..fetch();
+    });
+
+class RecentsReceiveNotifier
+    extends StateNotifier<AsyncValue<List<TransferRecent>>> {
+  RecentsReceiveNotifier(this._usecase) : super(const AsyncValue.loading());
+
+  final GetRecentsReceiveUsecase _usecase;
 
   Future<void> fetch() async {
     state = await AsyncValue.guard(_usecase.call);
@@ -98,3 +124,4 @@ class CreateReceiveNotifier extends StateNotifier<AsyncValue<void>> {
     state = await AsyncValue.guard(() => _usecase(basketCode: basketCode));
   }
 }
+

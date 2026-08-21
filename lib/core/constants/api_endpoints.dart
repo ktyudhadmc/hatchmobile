@@ -23,5 +23,10 @@ class ApiEndpoints {
   static const String createReceive =
       '$_api/hatchery/egg-receive/app/receive-basket';
 
-  static const String getAllHistoryHeaderReceive = '$_api/hatchery/egg-receive/app/riwayat-header';
+  static const String getRecentsReceive =
+      '$_api/hatchery/egg-receive/app/ongoing';
+  static const String getAllHistoryHeaderReceive =
+      '$_api/hatchery/egg-receive/app/riwayat-header';
+  static const String getHistoryDetailReceive =
+      '$_api/hatchery/egg-receive/app/riwayat';
 }

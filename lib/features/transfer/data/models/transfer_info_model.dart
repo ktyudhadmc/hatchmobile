@@ -19,4 +19,10 @@ class TransferInfoModel extends TransferInfo {
       // branch: TransferBranchModel.fromJson(json['branch'] as Map<String, dynamic>),
     );
   }
+
+  static List<TransferInfoModel> fromJsonList(List<dynamic> json) {
+    return json
+        .map((e) => TransferInfoModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
 }

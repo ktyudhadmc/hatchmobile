@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -5,19 +6,31 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/profile_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
-import '../../features/home/presentation/pages/home_page.dart';
+import '../../features/home/presentation/pages/history_page.dart';
 import '../../features/transfer/domain/entities/transfer_basket.dart';
+import '../../features/transfer/presentation/pages/scan_page.dart';
 import '../../features/transfer/presentation/pages/transfer_confirm_page.dart';
 
+/// Notifies go_router whenever [authProvider] changes, so it re-runs
+/// `redirect` on whatever page the user is currently on. Deliberately not
+/// `ref.watch`-ing authProvider directly inside routerProvider itself —
+/// that would rebuild this whole provider (and therefore construct a brand
+/// new GoRouter) on every auth change, which resets navigation back to
+/// `initialLocation` regardless of where the user actually was.
+class _AuthRefreshListenable extends ChangeNotifier {
+  _AuthRefreshListenable(Ref ref) {
+    ref.listen<AsyncValue<Object?>>(authProvider, (_, _) => notifyListeners());
+  }
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
-  // Watching authProvider recreates the router (and re-runs redirect) on
-  // every login/logout/session-restore, so navigation always reflects the
-  // latest auth state.
-  final authState = ref.watch(authProvider);
+  final authRefreshListenable = _AuthRefreshListenable(ref);
 
   return GoRouter(
     initialLocation: '/splash',
+    refreshListenable: authRefreshListenable,
     redirect: (context, state) {
+      final authState = ref.read(authProvider);
       final isLoading = authState.isLoading;
       final isAuthenticated = authState.valueOrNull != null;
       final isSplash = state.matchedLocation == '/splash';
@@ -25,7 +38,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (isLoading) return isSplash ? null : '/splash';
       if (!isAuthenticated) return isLoggingIn ? null : '/login';
-      if (isLoggingIn || isSplash) return '/home';
+      if (isLoggingIn || isSplash) return '/scan';
       return null;
     },
     routes: [
@@ -40,9 +53,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             const NoTransitionPage(child: LoginPage()),
       ),
       GoRoute(
+        path: '/scan',
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: ScanPage()),
+      ),
+      GoRoute(
         path: '/home',
         pageBuilder: (context, state) =>
-            const NoTransitionPage(child: HomePage()),
+            const NoTransitionPage(child: HistoryPage()),
       ),
       GoRoute(
         path: '/profile',
@@ -55,7 +73,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         // scanned basket via `extra` — this guard is scoped to just this
         // route so it doesn't run on every navigation.
         redirect: (context, state) =>
-            state.extra is! TransferBasket ? '/home' : null,
+            state.extra is! TransferBasket ? '/scan' : null,
         builder: (context, state) =>
             TransferConfirmPage(basket: state.extra as TransferBasket),
       ),

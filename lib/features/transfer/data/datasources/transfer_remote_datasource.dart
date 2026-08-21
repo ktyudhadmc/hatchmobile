@@ -1,12 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hatchmobile/features/transfer/data/models/transfer_info_model.dart';
+import 'package:hatchmobile/features/transfer/data/models/transfer_history/models.dart';
+import 'package:hatchmobile/features/transfer/data/models/transfer_recent/models.dart';
 
 import '../../../../core/constants/api_endpoints.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/network/api_service.dart';
 import '../models/transfer_basket_model.dart';
 
-// import '../../domain/repositories/mock_basket_response.dart';
+import '../../domain/repositories/mock_basket_response.dart';
 
 final transferRemoteDatasourceProvider = Provider<TransferRemoteDatasource>((
   ref,
@@ -84,18 +85,56 @@ class TransferRemoteDatasource {
   Future<List<TransferBasketModel>> getReceivedBaskets() async {
     final response = await _apiService.get(ApiEndpoints.receivedBaskets);
     final data = response.data as Map<String, dynamic>;
-    return (data['data'] as List)
-        .map((e) => TransferBasketModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return TransferBasketModel.fromJsonList(data['data'] as List);
+
+    // final data = mockReceivedBasketsResponseJson;
+    // return (data['data'] as List)
+    //     .map((e) => TransferBasketModel.fromJson(e as Map<String, dynamic>))
+    //     .toList();
   }
 
-  Future<List<TransferInfoModel>> getAllHistoryHeaderReceive() async {
+  Future<List<TransferHistoryModel>> getAllHistoryHeaderReceive({
+    required int range,
+  }) async {
     final response = await _apiService.get(
       ApiEndpoints.getAllHistoryHeaderReceive,
+      queryParameters: {'range': range},
     );
     final data = response.data as Map<String, dynamic>;
-    return (data['data'] as List)
-        .map((e) => TransferInfoModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+    // return TransferInfoModel.fromJsonList(data['data'] as List);
+
+    // final data = mockAllHistoryHeaderReceiveResponseJson;
+
+    return TransferHistoryModel.fromJsonList(data['data']['headers'] as List);
+  }
+
+  Future<List<TransferHistoryDetailModel>> getHistoryDetailReceive(
+    String transferCode,
+  ) async {
+    // final response = await _apiService.get(
+    //   ApiEndpoints.getHistoryDetailReceive,
+    //   queryParameters: {'id_transfer': transferCode},
+    // );
+    // final data = response.data as Map<String, dynamic>;
+
+    // if (data['status'] != 'success' || data['data'] is! List) {
+    //   throw NotFoundException(
+    //     (data['message'] as String?) ?? 'Riwayat tidak ditemukan',
+    //   );
+    // }
+    // return TransferHistoryDetailModel.fromJsonList(data['data'] as List);
+
+    final data = mockHistoryDetailReceiveResponseJson;
+
+    return TransferHistoryDetailModel.fromJsonList(
+      data['data']['baskets'] as List,
+    );
+  }
+
+  Future<List<TransferRecentModel>> getRecentsReceive() async {
+    final response = await _apiService.get(ApiEndpoints.getRecentsReceive);
+    final data = response.data as Map<String, dynamic>;
+
+    return TransferRecentModel.fromJsonList(data['data'] as List);
   }
 }

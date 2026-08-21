@@ -45,9 +45,9 @@ class _TransferConfirmPageState extends ConsumerState<TransferConfirmPage>
       provider: createReceiveProvider,
       loadingMessage: 'Menyimpan...',
       onData: (_) {
-        unawaited(ref.read(receivedBasketsProvider.notifier).fetch());
+        unawaited(ref.read(recentsReceiveProvider.notifier).fetch());
         ToastHelper.success('Basket berhasil dikonfirmasi');
-        context.go('/home');
+        context.go('/scan');
       },
       onError: (err, stack) {
         ToastHelper.error(err.toString());

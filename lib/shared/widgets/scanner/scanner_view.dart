@@ -18,6 +18,10 @@ class ScannerView extends StatefulWidget {
   /// Ukuran kotak scan. Default 240.
   final double scanBoxSize;
 
+  /// Geser posisi kotak scan secara vertikal dari titik tengah layar.
+  /// Nilai positif menggeser ke atas, negatif ke bawah. Default 0 (di tengah).
+  final double centerOffsetY;
+
   /// Controller dari luar — opsional.
   /// Kalau tidak diisi, widget buat sendiri dan dispose sendiri.
   final MobileScannerController? controller;
@@ -28,6 +32,7 @@ class ScannerView extends StatefulWidget {
     this.isBusy = false,
     this.hint,
     this.scanBoxSize = 240,
+    this.centerOffsetY = 0,
     this.controller,
   });
 
@@ -68,8 +73,11 @@ class _ScannerViewState extends State<ScannerView> {
       color: Colors.black,
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final center =
+              constraints.biggest.center(Offset.zero) -
+              Offset(0, widget.centerOffsetY);
           final scanWindow = Rect.fromCenter(
-            center: constraints.biggest.center(Offset.zero),
+            center: center,
             width: widget.scanBoxSize,
             height: widget.scanBoxSize,
           );

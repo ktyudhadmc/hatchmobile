@@ -6,6 +6,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/dialog_helper.dart';
 import '../../../../core/utils/general_formatter.dart';
 import '../../../../shared/widgets/bottom_bar_navigation.dart';
+import '../../../../shared/widgets/refreshable_view.dart';
 import '../providers/auth_provider.dart';
 
 class ProfilePage extends ConsumerWidget {
@@ -32,9 +33,11 @@ class ProfilePage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Akun')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
+      body: RefreshableView(
+        onRefresh: () => ref.read(authProvider.notifier).refreshCurrentUser(),
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          physics: const AlwaysScrollableScrollPhysics(),
           children: [
             _buildProfileCard(user?.name ?? '-', user?.role.name ?? '-'),
             const SizedBox(height: 24),
