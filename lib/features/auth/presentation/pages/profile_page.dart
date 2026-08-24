@@ -32,7 +32,7 @@ class ProfilePage extends ConsumerWidget {
     final currentRoute = GoRouterState.of(context).matchedLocation;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Akun')),
+      appBar: AppBar(title: const Text('Profile')),
       body: RefreshableView(
         onRefresh: () => ref.read(authProvider.notifier).refreshCurrentUser(),
         child: ListView(

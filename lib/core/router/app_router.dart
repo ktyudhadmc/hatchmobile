@@ -7,9 +7,7 @@ import '../../features/auth/presentation/pages/profile_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/home/presentation/pages/history_page.dart';
-import '../../features/transfer/domain/entities/transfer_basket.dart';
 import '../../features/transfer/presentation/pages/scan_page.dart';
-import '../../features/transfer/presentation/pages/transfer_confirm_page.dart';
 
 /// Notifies go_router whenever [authProvider] changes, so it re-runs
 /// `redirect` on whatever page the user is currently on. Deliberately not
@@ -66,16 +64,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/profile',
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: ProfilePage()),
-      ),
-      GoRoute(
-        path: '/transfer/confirm',
-        // Only reachable right after a scan, which always passes the
-        // scanned basket via `extra` — this guard is scoped to just this
-        // route so it doesn't run on every navigation.
-        redirect: (context, state) =>
-            state.extra is! TransferBasket ? '/scan' : null,
-        builder: (context, state) =>
-            TransferConfirmPage(basket: state.extra as TransferBasket),
       ),
     ],
   );

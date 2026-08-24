@@ -7,7 +7,7 @@ import '../../../../core/errors/app_exception.dart';
 import '../../../../core/network/api_service.dart';
 import '../models/transfer_basket_model.dart';
 
-import '../../domain/repositories/mock_basket_response.dart';
+// import '../../domain/repositories/mock_basket_response.dart';
 
 final transferRemoteDatasourceProvider = Provider<TransferRemoteDatasource>((
   ref,
@@ -111,24 +111,26 @@ class TransferRemoteDatasource {
   Future<List<TransferHistoryDetailModel>> getHistoryDetailReceive(
     String transferCode,
   ) async {
-    // final response = await _apiService.get(
-    //   ApiEndpoints.getHistoryDetailReceive,
-    //   queryParameters: {'id_transfer': transferCode},
-    // );
-    // final data = response.data as Map<String, dynamic>;
-
-    // if (data['status'] != 'success' || data['data'] is! List) {
-    //   throw NotFoundException(
-    //     (data['message'] as String?) ?? 'Riwayat tidak ditemukan',
-    //   );
-    // }
-    // return TransferHistoryDetailModel.fromJsonList(data['data'] as List);
-
-    final data = mockHistoryDetailReceiveResponseJson;
-
-    return TransferHistoryDetailModel.fromJsonList(
-      data['data']['baskets'] as List,
+    final response = await _apiService.get(
+      ApiEndpoints.getHistoryDetailReceive,
+      queryParameters: {'id_transfer': transferCode},
     );
+    final data = response.data as Map<String, dynamic>;
+
+    if (data['status'] != 'success') {
+      throw NotFoundException(
+        (data['message'] as String?) ?? 'Riwayat tidak ditemukan',
+      );
+    }
+    return TransferHistoryDetailModel.fromJsonList(
+      data['data']['items'] as List,
+    );
+
+    // final data = mockHistoryDetailReceiveResponseJson;
+
+    // return TransferHistoryDetailModel.fromJsonList(
+    //   data['data']['baskets'] as List,
+    // );
   }
 
   Future<List<TransferRecentModel>> getRecentsReceive() async {

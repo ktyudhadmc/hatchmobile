@@ -19,13 +19,14 @@ class HistoryPage extends ConsumerWidget {
     final currentRoute = GoRouterState.of(context).matchedLocation;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Riwayat Penerimaan')),
+      appBar: AppBar(title: const Text('History')),
       body: Column(
         children: [
           const HistorySearchFilterBar(),
           Expanded(
             child: RefreshableView(
-              onRefresh: () => ref.read(historyHeadersProvider.notifier).fetch(),
+              onRefresh: () =>
+                  ref.read(historyHeadersProvider.notifier).fetch(),
               child: const HistoryHeaderList(),
             ),
           ),

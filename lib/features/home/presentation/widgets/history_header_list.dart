@@ -118,9 +118,7 @@ class _HeaderCard extends StatelessWidget {
           color: Colors.white,
           border: Border.all(color: const Color(0xffF5F8FA)),
           borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
-            BoxShadow(color: Color(0x19000000), blurRadius: 6),
-          ],
+          boxShadow: const [BoxShadow(color: Color(0x19000000), blurRadius: 6)],
         ),
         child: Row(
           children: [

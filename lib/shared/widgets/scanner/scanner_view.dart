@@ -2,9 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
-import '../../../../core/theme/app_theme.dart';
-
 class ScannerView extends StatefulWidget {
+  /// Default of [guideBoxSize] — exposed so callers positioning something
+  /// relative to the guide box (e.g. a button under it) can agree with it
+  /// without duplicating the number.
+  static const double defaultGuideBoxSize = 260;
+
   /// Dipanggil sekali per QR code yang terdeteksi.
   /// Caller bertanggung jawab untuk set [isBusy] supaya tidak double scan.
   final void Function(String code) onDetect;
@@ -12,15 +15,16 @@ class ScannerView extends StatefulWidget {
   /// Kalau true, scanner tidak akan memproses barcode baru.
   final bool isBusy;
 
-  /// Label di bawah scan box. Default sudah ada.
+  /// Label di bawah area scan.
   final String? hint;
 
-  /// Ukuran kotak scan. Default 240.
-  final double scanBoxSize;
+  /// Ukuran kotak panduan visual. Murni dekoratif — deteksi tetap jalan di
+  /// seluruh frame kamera, bukan cuma di dalam kotak ini.
+  final double guideBoxSize;
 
-  /// Geser posisi kotak scan secara vertikal dari titik tengah layar.
+  /// Geser posisi kotak panduan secara vertikal dari titik tengah layar.
   /// Nilai positif menggeser ke atas, negatif ke bawah. Default 0 (di tengah).
-  final double centerOffsetY;
+  final double guideOffsetY;
 
   /// Controller dari luar — opsional.
   /// Kalau tidak diisi, widget buat sendiri dan dispose sendiri.
@@ -31,8 +35,8 @@ class ScannerView extends StatefulWidget {
     required this.onDetect,
     this.isBusy = false,
     this.hint,
-    this.scanBoxSize = 240,
-    this.centerOffsetY = 0,
+    this.guideBoxSize = defaultGuideBoxSize,
+    this.guideOffsetY = 0,
     this.controller,
   });
 
@@ -69,54 +73,124 @@ class _ScannerViewState extends State<ScannerView> {
 
   @override
   Widget build(BuildContext context) {
+    // No scanWindow on MobileScanner — the whole camera frame is scannable.
+    // The box below is just a visual guide for where to line up the code.
     return ColoredBox(
       color: Colors.black,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final center =
               constraints.biggest.center(Offset.zero) -
-              Offset(0, widget.centerOffsetY);
-          final scanWindow = Rect.fromCenter(
+              Offset(0, widget.guideOffsetY);
+          final guideRect = Rect.fromCenter(
             center: center,
-            width: widget.scanBoxSize,
-            height: widget.scanBoxSize,
+            width: widget.guideBoxSize,
+            height: widget.guideBoxSize,
           );
 
           return Stack(
             fit: StackFit.expand,
             children: [
-              MobileScanner(
-                controller: _controller,
-                onDetect: _onDetect,
-                scanWindow: scanWindow,
-              ),
-              Positioned.fromRect(
-                rect: scanWindow,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppTheme.primaryColor, width: 3),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+              MobileScanner(controller: _controller, onDetect: _onDetect),
+              IgnorePointer(
+                child: CustomPaint(
+                  painter: _ScanGuidePainter(guideRect: guideRect),
                 ),
               ),
-              Positioned(
-                bottom: 16,
-                left: 24,
-                right: 24,
-                child: Text(
-                  widget.hint ?? 'Arahkan kamera ke QR code',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    shadows: [Shadow(blurRadius: 8, color: Colors.black)],
+              if (widget.hint != null && widget.hint!.isNotEmpty)
+                Positioned(
+                  bottom: 16,
+                  left: 24,
+                  right: 24,
+                  child: Text(
+                    widget.hint!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      shadows: [Shadow(blurRadius: 8, color: Colors.black)],
+                    ),
                   ),
                 ),
-              ),
             ],
           );
         },
       ),
     );
   }
+}
+
+/// Dims everything outside [guideRect] and draws corner brackets around it,
+/// like a typical QR-scanner viewfinder — purely a visual aid, doesn't
+/// affect what area actually gets scanned.
+class _ScanGuidePainter extends CustomPainter {
+  const _ScanGuidePainter({required this.guideRect});
+
+  final Rect guideRect;
+
+  static const _cornerLength = 28.0;
+  static const _cornerRadius = 0.0;
+  static const _strokeWidth = 4.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final holePath = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          guideRect,
+          const Radius.circular(_cornerRadius),
+        ),
+      );
+    final overlayPath = Path.combine(
+      PathOperation.difference,
+      Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height)),
+      holePath,
+    );
+    canvas.drawPath(
+      overlayPath,
+      Paint()..color = Colors.black.withValues(alpha: 0.55),
+    );
+
+    final cornerPaint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = _strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    void drawCorner(Offset a, Offset b, Offset c) {
+      canvas.drawPath(
+        Path()
+          ..moveTo(a.dx, a.dy)
+          ..lineTo(b.dx, b.dy)
+          ..lineTo(c.dx, c.dy),
+        cornerPaint,
+      );
+    }
+
+    final r = guideRect;
+    drawCorner(
+      Offset(r.left, r.top + _cornerLength),
+      Offset(r.left, r.top),
+      Offset(r.left + _cornerLength, r.top),
+    );
+    drawCorner(
+      Offset(r.right - _cornerLength, r.top),
+      Offset(r.right, r.top),
+      Offset(r.right, r.top + _cornerLength),
+    );
+    drawCorner(
+      Offset(r.right, r.bottom - _cornerLength),
+      Offset(r.right, r.bottom),
+      Offset(r.right - _cornerLength, r.bottom),
+    );
+    drawCorner(
+      Offset(r.left + _cornerLength, r.bottom),
+      Offset(r.left, r.bottom),
+      Offset(r.left, r.bottom - _cornerLength),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ScanGuidePainter oldDelegate) =>
+      oldDelegate.guideRect != guideRect;
 }
