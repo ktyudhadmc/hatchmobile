@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../../shared/widgets/pin_code_input.dart';
+import '../../../../shared/widgets/form/pin_code_input.dart';
 import '../../../../shared/widgets/scanner/scanner_view.dart';
 import '../../domain/entities/transfer_basket.dart';
 import '../providers/transfer_provider.dart';
@@ -99,20 +99,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                 onCompleted: (pin) => Navigator.of(context).pop('A$pin'),
               ),
               const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.primaryColor,
-                    side: const BorderSide(color: AppTheme.primaryColor),
-                    shape: buttonShape,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text('Cancel'),
-                ),
-              ),
-              const SizedBox(height: 8),
+
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -125,7 +112,33 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                     shape: buttonShape,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text('Search'),
+                  child: const Text(
+                    'SEARCH',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontFamily: AppTheme.fontFamily,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.primaryColor,
+                    side: const BorderSide(color: AppTheme.primaryColor),
+                    shape: buttonShape,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text(
+                    'BACK',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontFamily: AppTheme.fontFamily,
+                    ),
+                  ),
                 ),
               ),
             ],

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 
-import '../../core/theme/app_theme.dart';
+import '../../../core/theme/app_theme.dart';
 
 /// PIN-style input: fixed-width boxed fields, one per character. Optionally
 /// preceded by a static, non-editable label box (e.g. a fixed letter

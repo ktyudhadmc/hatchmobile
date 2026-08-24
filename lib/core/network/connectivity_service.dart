@@ -5,6 +5,15 @@ final connectivityServiceProvider = Provider<ConnectivityService>((ref) {
   return ConnectivityService();
 });
 
+/// Current connectivity status: the initial check, then live updates.
+/// [ConnectivityGate] watches this to show/hide the blocking "no internet"
+/// sheet app-wide.
+final connectivityStatusProvider = StreamProvider<bool>((ref) async* {
+  final service = ref.watch(connectivityServiceProvider);
+  yield await service.isConnected();
+  yield* service.onStatusChange;
+});
+
 class ConnectivityService {
   final Connectivity _connectivity = Connectivity();
 

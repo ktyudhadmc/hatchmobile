@@ -74,7 +74,13 @@ class DialogHelper {
                     foregroundColor: Colors.white,
                     shape: buttonShape,
                   ),
-                  child: Text(confirmLabel.toUpperCase()),
+                  child: Text(
+                    confirmLabel.toUpperCase(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontFamily: AppTheme.fontFamily,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -156,7 +162,13 @@ class DialogHelper {
                     shape: buttonShape,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: Text(cancelLabel.toUpperCase()),
+                  child: Text(
+                    cancelLabel.toUpperCase(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontFamily: AppTheme.fontFamily,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -170,7 +182,13 @@ class DialogHelper {
                     shape: buttonShape,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: Text(confirmLabel.toUpperCase()),
+                  child: Text(
+                    confirmLabel.toUpperCase(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontFamily: AppTheme.fontFamily,
+                    ),
+                  ),
                 ),
               ),
             ],

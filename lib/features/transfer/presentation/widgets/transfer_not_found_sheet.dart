@@ -69,7 +69,7 @@ class _TransferNotFoundSheetState extends State<TransferNotFoundSheet> {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: const Text(
-                  'KEMBALI',
+                  'BACK',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontFamily: AppTheme.fontFamily,

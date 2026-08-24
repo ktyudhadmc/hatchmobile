@@ -4,11 +4,24 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/asset_constants.dart';
+import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/dialog_helper.dart';
-import '../../../../shared/widgets/form_text_field.dart';
+import '../../../../shared/widgets/form/form_text_field.dart';
 import '../../domain/entities/user.dart';
 import '../providers/auth_provider.dart';
+
+/// Maps a login failure to its toast message. Credential-related errors
+/// (wrong username/password) are shown as a generic prompt rather than the
+/// raw backend message; other errors (network, server) keep their own
+/// message since those remain actionable/diagnosable as-is.
+String loginErrorMessage(Object error) {
+  final isInvalidCredentials =
+      error is UnauthorizedException ||
+      error is BadRequestException ||
+      error is ValidationException;
+  return isInvalidCredentials ? 'Please check your input' : error.toString();
+}
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -39,9 +52,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     ) {
       next.whenOrNull(
         data: (user) {
-          if (user != null) ToastHelper.success('Login berhasil!');
+          if (user != null) ToastHelper.success('Login successfully!');
         },
-        error: (err, stack) => ToastHelper.error(err.toString()),
+        error: (err, stack) => ToastHelper.error(loginErrorMessage(err)),
       );
     });
   }
@@ -56,7 +69,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   void _onSubmit() {
     if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
-      ToastHelper.error('Email dan password wajib diisi');
+      ToastHelper.error('Please enter email and password');
       return;
     }
 
@@ -79,6 +92,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     return Scaffold(
       appBar: AppBar(elevation: 0, scrolledUnderElevation: 0),
+      backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -109,7 +123,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ),
                 SizedBox(height: screenHeight * 0.02),
                 FormTextField(
-                  label: 'Email',
+                  label: 'Username',
                   isRequired: true,
                   controller: _usernameController,
                   keyboardType: TextInputType.emailAddress,
@@ -118,7 +132,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 FormTextField(
                   label: 'Password',
                   isRequired: true,
-                  isObscure: true,
+                  isPassword: true,
                   controller: _passwordController,
                   keyboardType: TextInputType.visiblePassword,
                 ),
@@ -145,7 +159,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         width: double.infinity,
         padding: EdgeInsets.symmetric(
           horizontal: screenWidth * 0.04,
-          vertical: screenWidth * 0.02,
+          vertical: 16,
         ),
         decoration: ShapeDecoration(
           color: AppTheme.primaryColor,

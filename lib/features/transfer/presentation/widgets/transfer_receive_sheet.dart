@@ -13,9 +13,9 @@ import '../providers/transfer_provider.dart';
 enum _SheetStatus { idle, success, alreadyReceived }
 
 /// Blocking sheet shown right after a basket is scanned, docked to the
-/// bottom of the scan screen. SIMPAN (or the backend reporting the basket
+/// bottom of the scan screen. SAVE (or the backend reporting the basket
 /// as already received) auto-dismisses via [onDismiss] so the scanner can
-/// resume; KEMBALI calls [onBack] to cancel and resume scanning right away.
+/// resume; BACK calls [onBack] to cancel and resume scanning right away.
 /// Leaving the scan screen entirely is done through the page's own top bar,
 /// not from here.
 class TransferReceiveSheet extends ConsumerStatefulWidget {
@@ -46,12 +46,12 @@ class _TransferReceiveSheetState extends ConsumerState<TransferReceiveSheet>
 
     listenAsync(
       provider: createReceiveProvider,
-      loadingMessage: 'Menyimpan...',
+      loadingMessage: 'Loading',
       onData: (_) {
         unawaited(ref.read(recentsReceiveProvider.notifier).fetch());
         setState(() {
           _status = _SheetStatus.success;
-          _message = 'Basket berhasil diterima!';
+          _message = 'Save Successfully!';
         });
         Future.delayed(const Duration(seconds: 1), () {
           if (mounted) widget.onDismiss();
@@ -217,9 +217,7 @@ class _TransferReceiveSheetState extends ConsumerState<TransferReceiveSheet>
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: ShapeDecoration(
           color: AppTheme.successColor.withValues(alpha: 0.35),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: Text(
           _message,
@@ -238,28 +236,10 @@ class _TransferReceiveSheetState extends ConsumerState<TransferReceiveSheet>
       borderRadius: BorderRadius.circular(8),
     );
 
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: OutlinedButton(
-            onPressed: widget.onBack,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.primaryColor,
-              side: const BorderSide(color: AppTheme.primaryColor),
-              shape: buttonShape,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: const Text(
-              'KEMBALI',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontFamily: AppTheme.fontFamily,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
+        SizedBox(
+          width: double.infinity,
           child: ElevatedButton(
             onPressed: _onSave,
             style: ElevatedButton.styleFrom(
@@ -269,7 +249,27 @@ class _TransferReceiveSheetState extends ConsumerState<TransferReceiveSheet>
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
             child: const Text(
-              'SIMPAN',
+              'SAVE',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontFamily: AppTheme.fontFamily,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: widget.onBack,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.primaryColor,
+              side: const BorderSide(color: AppTheme.primaryColor),
+              shape: buttonShape,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+            child: const Text(
+              'BACK',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontFamily: AppTheme.fontFamily,

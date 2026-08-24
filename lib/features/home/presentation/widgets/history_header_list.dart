@@ -24,7 +24,7 @@ class HistoryHeaderList extends ConsumerWidget {
     if (headersState.hasError) {
       return const _FillScrollView(
         child: _Placeholder(
-          message: 'Gagal memuat riwayat transfer',
+          message: 'Error loading details',
           icon: Icons.error_outline,
         ),
       );
@@ -33,7 +33,7 @@ class HistoryHeaderList extends ConsumerWidget {
     if (headers.isEmpty) {
       return const _FillScrollView(
         child: _Placeholder(
-          message: 'Belum ada riwayat transfer',
+          message: 'This transfer is empty',
           icon: Icons.history_rounded,
         ),
       );

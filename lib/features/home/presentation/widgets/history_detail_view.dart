@@ -60,12 +60,12 @@ class HistoryDetailView extends StatelessWidget {
               children: [
                 switch (detail) {
                   AsyncError() => const _Placeholder(
-                    message: 'Gagal memuat detail riwayat',
+                    message: 'Error loading details',
                     icon: Icons.error_outline,
                   ),
                   AsyncData(value: final baskets) when baskets.isEmpty =>
                     const _Placeholder(
-                      message: 'Belum ada basket diterima',
+                      message: 'This transfer is empty',
                       icon: Icons.inventory_2_outlined,
                     ),
                   AsyncData(value: final baskets) => Column(
