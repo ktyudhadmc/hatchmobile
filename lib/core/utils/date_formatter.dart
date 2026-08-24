@@ -13,6 +13,11 @@ class DateFormatter {
 
   static String today() => DateFormat(AppConstants.dateFormat).format(DateTime.now());
 
+  /// Strips the time-of-day component, keeping just the calendar date at
+  /// midnight — handy for date-only comparisons (e.g. "is this today?").
+  static DateTime dateOnly(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
+
   static DateTime? tryParse(String? value) {
     if (value == null || value.isEmpty) return null;
     return DateTime.tryParse(value);

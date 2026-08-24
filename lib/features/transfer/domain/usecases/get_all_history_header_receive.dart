@@ -7,6 +7,6 @@ class GetAllHistoryHeaderReceive {
 
   final TransferRepository _repository;
 
-  Future<List<TransferHistory>> call({required int range}) =>
-      _repository.getAllHistoryHeaderReceive(range: range);
+  Future<List<TransferHistory>> call(String startDate, String endDate) =>
+      _repository.getAllHistoryHeaderReceive(startDate, endDate);
 }

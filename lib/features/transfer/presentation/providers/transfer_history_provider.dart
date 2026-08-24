@@ -1,61 +1,55 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/utils/date_formatter.dart';
 import '../../data/repositories/transfer_repository_impl.dart';
 import '../../domain/entities/transfer_history/entities.dart';
 import '../../domain/usecases/get_all_history_header_receive.dart';
 import '../../domain/usecases/get_history_detail_receive_usecase.dart';
 
-/// "Last N months" filter for the Riwayat header list — one of 1, 3, 6. Sent
-/// to the backend as the `range` query param on the riwayat-header endpoint.
-final historyMonthsFilterProvider = StateProvider<int>((ref) => 1);
+DateTimeRange _defaultHistoryDateRange() {
+  final today = DateFormatter.dateOnly(DateTime.now());
+  return DateTimeRange(start: today, end: today);
+}
+
+/// [start, end] date filter for the Riwayat header list — sent to the
+/// backend as `start_date`/`end_date` (Y-m-d) on the riwayat-header
+/// endpoint. Defaults to the last 7 days.
+final historyDateRangeProvider = StateProvider<DateTimeRange>(
+  (ref) => _defaultHistoryDateRange(),
+);
 
 /// Transfer headers for the Riwayat (history) list, filtered server-side by
-/// [historyMonthsFilterProvider]. Refetches whenever the range changes.
+/// [historyDateRangeProvider]. Refetches whenever the range changes.
 final historyHeadersProvider =
     StateNotifierProvider<
       HistoryHeadersNotifier,
       AsyncValue<List<TransferHistory>>
     >((ref) {
-      final range = ref.watch(historyMonthsFilterProvider);
+      final range = ref.watch(historyDateRangeProvider);
       return HistoryHeadersNotifier(
         GetAllHistoryHeaderReceive(ref.watch(transferRepositoryProvider)),
-        range: range,
+        startDate: DateFormatter.toApiFormat(range.start),
+        endDate: DateFormatter.toApiFormat(range.end),
       )..fetch();
     });
 
 class HistoryHeadersNotifier
     extends StateNotifier<AsyncValue<List<TransferHistory>>> {
-  HistoryHeadersNotifier(this._usecase, {required this.range})
-    : super(const AsyncValue.loading());
+  HistoryHeadersNotifier(
+    this._usecase, {
+    required this.startDate,
+    required this.endDate,
+  }) : super(const AsyncValue.loading());
 
   final GetAllHistoryHeaderReceive _usecase;
-  final int range;
+  final String startDate;
+  final String endDate;
 
   Future<void> fetch() async {
-    state = await AsyncValue.guard(() => _usecase(range: range));
+    state = await AsyncValue.guard(() => _usecase(startDate, endDate));
   }
 }
-
-/// Free-text search over the Riwayat header list — matched client-side
-/// against transfer code / branch, since [historyHeadersProvider] already
-/// holds the range-filtered list from the backend.
-final historySearchQueryProvider = StateProvider<String>((ref) => '');
-
-/// [historyHeadersProvider], narrowed by [historySearchQueryProvider].
-final filteredHistoryHeadersProvider = Provider<List<TransferHistory>>((ref) {
-  final headers = ref.watch(historyHeadersProvider).valueOrNull ?? const [];
-  final query = ref.watch(historySearchQueryProvider).trim().toLowerCase();
-
-  if (query.isEmpty) return headers;
-
-  return headers
-      .where(
-        (header) =>
-            header.transferCode.toLowerCase().contains(query) ||
-            header.branch.toLowerCase().contains(query),
-      )
-      .toList();
-});
 
 /// Which history header is currently open in the detail sheet, by
 /// `transferCode`.

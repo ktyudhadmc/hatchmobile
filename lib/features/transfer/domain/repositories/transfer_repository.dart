@@ -21,9 +21,10 @@ abstract class TransferRepository {
   Future<List<TransferBasket>> getReceivedBaskets();
 
   // GET ALL TRANSFER HISTORY
-  Future<List<TransferHistory>> getAllHistoryHeaderReceive({
-    required int range,
-  });
+  Future<List<TransferHistory>> getAllHistoryHeaderReceive(
+    String startDate,
+    String endDate,
+  );
 
   Future<List<TransferHistoryDetail>> getHistoryDetailReceive(
     String transferCode,

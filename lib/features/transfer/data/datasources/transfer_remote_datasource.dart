@@ -93,12 +93,13 @@ class TransferRemoteDatasource {
     //     .toList();
   }
 
-  Future<List<TransferHistoryModel>> getAllHistoryHeaderReceive({
-    required int range,
-  }) async {
+  Future<List<TransferHistoryModel>> getAllHistoryHeaderReceive(
+    String startDate,
+    String endDate,
+  ) async {
     final response = await _apiService.get(
       ApiEndpoints.getAllHistoryHeaderReceive,
-      queryParameters: {'range': range},
+      queryParameters: {'start_date': startDate, 'end_date': endDate},
     );
     final data = response.data as Map<String, dynamic>;
     // return TransferInfoModel.fromJsonList(data['data'] as List);

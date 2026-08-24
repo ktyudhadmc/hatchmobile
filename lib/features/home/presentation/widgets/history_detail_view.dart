@@ -38,7 +38,7 @@ class HistoryDetailView extends StatelessWidget {
               _SummaryCard(header: header),
               const SizedBox(height: 16),
               Text(
-                'Daftar Basket',
+                'List of Basket',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ],
@@ -46,32 +46,40 @@ class HistoryDetailView extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Expanded(
-          child: ListView(
-            controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              switch (detail) {
-                AsyncError() => const _Placeholder(
-                  message: 'Gagal memuat detail riwayat',
-                  icon: Icons.error_outline,
-                ),
-                AsyncData(value: final baskets) when baskets.isEmpty =>
-                  const _Placeholder(
-                    message: 'Belum ada basket diterima',
-                    icon: Icons.inventory_2_outlined,
+          // showModalBottomSheet doesn't add safe-area insets on its own
+          // (useSafeArea defaults to false), and on gesture-nav Android
+          // MediaQuery.padding.bottom often reports 0 — so `minimum` is
+          // what actually keeps the last card clear of the system nav bar.
+          child: SafeArea(
+            top: false,
+            minimum: const EdgeInsets.only(bottom: 16),
+            child: ListView(
+              controller: scrollController,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                switch (detail) {
+                  AsyncError() => const _Placeholder(
+                    message: 'Gagal memuat detail riwayat',
+                    icon: Icons.error_outline,
                   ),
-                AsyncData(value: final baskets) => Column(
-                  children: baskets
-                      .map((basket) => _BasketCard(basket: basket))
-                      .toList(),
-                ),
-                _ => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-              },
-            ],
+                  AsyncData(value: final baskets) when baskets.isEmpty =>
+                    const _Placeholder(
+                      message: 'Belum ada basket diterima',
+                      icon: Icons.inventory_2_outlined,
+                    ),
+                  AsyncData(value: final baskets) => Column(
+                    children: baskets
+                        .map((basket) => _BasketCard(basket: basket))
+                        .toList(),
+                  ),
+                  _ => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                },
+              ],
+            ),
           ),
         ),
       ],
@@ -209,11 +217,11 @@ class _BasketCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            'Grade ${grade.grade}',
+            grade.grade,
             style: const TextStyle(color: Color(0xFF7B7B7B), fontSize: 12),
           ),
           Text(
-            'Dikirim ${grade.quantity} · Diterima ${grade.receivedQuantity ?? 0}',
+            'Shipped ${grade.quantity} · Received ${grade.receivedQuantity ?? 0}',
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ],

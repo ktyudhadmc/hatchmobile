@@ -8,7 +8,7 @@ import '../../../transfer/presentation/providers/transfer_history_provider.dart'
 import '../widgets/history_header_list.dart';
 import '../widgets/history_search_filter_bar.dart';
 
-/// Riwayat — history of past transfers. Search + "last N months" narrow
+/// Riwayat — history of past transfers. Search + date range narrow
 /// [historyHeadersProvider]'s list; tapping a header will open its detail
 /// (transfer info + basket list) in a follow-up.
 class HistoryPage extends ConsumerWidget {

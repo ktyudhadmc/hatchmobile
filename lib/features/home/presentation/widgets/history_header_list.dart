@@ -13,7 +13,7 @@ class HistoryHeaderList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final headersState = ref.watch(historyHeadersProvider);
-    final headers = ref.watch(filteredHistoryHeadersProvider);
+    final headers = headersState.valueOrNull ?? const [];
 
     if (headersState.isLoading) {
       return const _FillScrollView(
@@ -31,12 +31,9 @@ class HistoryHeaderList extends ConsumerWidget {
     }
 
     if (headers.isEmpty) {
-      final hasAnyHeaders = (headersState.valueOrNull ?? const []).isNotEmpty;
-      return _FillScrollView(
+      return const _FillScrollView(
         child: _Placeholder(
-          message: hasAnyHeaders
-              ? 'Tidak ada riwayat yang cocok'
-              : 'Belum ada riwayat transfer',
+          message: 'Belum ada riwayat transfer',
           icon: Icons.history_rounded,
         ),
       );
@@ -146,6 +143,8 @@ class _HeaderCard extends StatelessWidget {
               ),
             ),
             Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Text(
                   header.branch,
@@ -157,7 +156,7 @@ class _HeaderCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Received: ${header.receivedBasketCount ?? 0}',
+                  'Shipped ${header.sentbasketCount} · Received ${header.receivedBasketCount ?? 0}',
                   style: const TextStyle(
                     color: Color(0xFF7B7B7B),
                     fontSize: 12,
