@@ -24,35 +24,56 @@ class HistoryDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      controller: scrollController,
-      padding: const EdgeInsets.all(16),
-      physics: const AlwaysScrollableScrollPhysics(),
+    // header comes straight from props (already in hand before this widget
+    // even builds), so it's safe to pin it outside the scroll area — only
+    // the basket list, which depends on the in-flight detail fetch, needs
+    // to scroll.
+    return Column(
       children: [
-        _SummaryCard(header: header),
-        const SizedBox(height: 16),
-        Text('Daftar Basket', style: Theme.of(context).textTheme.titleMedium),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SummaryCard(header: header),
+              const SizedBox(height: 16),
+              Text(
+                'Daftar Basket',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 8),
-        switch (detail) {
-          AsyncError() => const _Placeholder(
-            message: 'Gagal memuat detail riwayat',
-            icon: Icons.error_outline,
+        Expanded(
+          child: ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              switch (detail) {
+                AsyncError() => const _Placeholder(
+                  message: 'Gagal memuat detail riwayat',
+                  icon: Icons.error_outline,
+                ),
+                AsyncData(value: final baskets) when baskets.isEmpty =>
+                  const _Placeholder(
+                    message: 'Belum ada basket diterima',
+                    icon: Icons.inventory_2_outlined,
+                  ),
+                AsyncData(value: final baskets) => Column(
+                  children: baskets
+                      .map((basket) => _BasketCard(basket: basket))
+                      .toList(),
+                ),
+                _ => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              },
+            ],
           ),
-          AsyncData(value: final baskets) when baskets.isEmpty =>
-            const _Placeholder(
-              message: 'Belum ada basket diterima',
-              icon: Icons.inventory_2_outlined,
-            ),
-          AsyncData(value: final baskets) => Column(
-            children: baskets
-                .map((basket) => _BasketCard(basket: basket))
-                .toList(),
-          ),
-          _ => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(child: CircularProgressIndicator()),
-          ),
-        },
+        ),
       ],
     );
   }

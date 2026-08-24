@@ -42,7 +42,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
   Future<void> _onMockScan() async {
     final pinController = TextEditingController();
 
-    final screenWidth = MediaQuery.of(context).size.width;
+    // final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
     final buttonShape = RoundedRectangleBorder(
