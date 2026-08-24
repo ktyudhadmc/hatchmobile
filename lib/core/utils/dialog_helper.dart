@@ -84,6 +84,102 @@ class DialogHelper {
     return result ?? false;
   }
 
+  /// Same confirm/cancel contract as [confirm], but as a bottom sheet
+  /// (close button + icon + message, cancel outlined above confirm filled)
+  /// instead of an [AlertDialog].
+  static Future<bool> confirmSheet(
+    BuildContext context, {
+    required String title,
+    required String message,
+    String confirmLabel = 'Ya',
+    String cancelLabel = 'Tidak',
+    bool isDanger = false,
+  }) async {
+    final fillColor = AppTheme.primaryColor;
+    final buttonShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(8),
+    );
+
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        top: false,
+        minimum: const EdgeInsets.only(bottom: 16),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(false),
+                  ),
+                  Expanded(
+                    child: Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 48),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Icon(
+                isDanger ? Icons.error_outline : Icons.help_outline,
+                color: isDanger ? AppTheme.errorColor : fillColor,
+                size: 40,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF7B7B7B)),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: fillColor,
+                    side: BorderSide(color: fillColor),
+                    shape: buttonShape,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: Text(cancelLabel.toUpperCase()),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: fillColor,
+                    foregroundColor: Colors.white,
+                    shape: buttonShape,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: Text(confirmLabel.toUpperCase()),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    return result ?? false;
+  }
+
   static void showLoading(BuildContext context, {String? message}) {
     showDialog(
       context: context,
