@@ -61,11 +61,18 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView>
         context.pushReplacement('/transfer/confirm', extra: basket);
       },
       onError: (err, stack) {
-        _setBusy(false);
+        // START SCAN AGAIN #1
+        // _setBusy(false);
         ToastHelper.error(err.toString());
 
-        // START SCAN AGAIN
-        if (mounted) _controller.start();
+        // START SCAN AGAIN #2
+        // if (mounted) _controller.start();
+
+        if (mounted) {
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) _controller.start();
+          });
+        }
       },
     );
   }
