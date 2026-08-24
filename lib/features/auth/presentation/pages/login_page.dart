@@ -4,10 +4,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/asset_constants.dart';
-import '../../../../core/mixins/async_state_handler_mixin.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/dialog_helper.dart';
 import '../../../../shared/widgets/form_text_field.dart';
+import '../../domain/entities/user.dart';
 import '../providers/auth_provider.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -17,27 +17,38 @@ class LoginPage extends ConsumerStatefulWidget {
   ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends ConsumerState<LoginPage>
-    with AsyncStateHandlerMixin {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  // Not the shared listenAsync/DialogHelper loading dialog: a successful
+  // login immediately triggers go_router's redirect to /scan, which can
+  // unmount this page before the dialog's deferred pop runs — leaving it
+  // stuck open on top of /scan forever. An inline spinner on the submit
+  // button itself sidesteps the whole class of bug (no dialog, no
+  // Navigator involved).
+  late final ProviderSubscription<AsyncValue<User?>> _authSubscription;
 
   @override
   void initState() {
     super.initState();
 
-    listenAsync(
-      provider: authProvider,
-      loadingMessage: 'Memproses...',
-      onData: (user) {
-        if (user != null) ToastHelper.success('Login berhasil!');
-      },
-      onError: (err, stack) => ToastHelper.error(err.toString()),
-    );
+    _authSubscription = ref.listenManual<AsyncValue<User?>>(authProvider, (
+      previous,
+      next,
+    ) {
+      next.whenOrNull(
+        data: (user) {
+          if (user != null) ToastHelper.success('Login berhasil!');
+        },
+        error: (err, stack) => ToastHelper.error(err.toString()),
+      );
+    });
   }
 
   @override
   void dispose() {
+    _authSubscription.close();
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -59,11 +70,12 @@ class _LoginPageState extends ConsumerState<LoginPage>
 
   @override
   Widget build(BuildContext context) {
-    const greeting = 'Selamat Datang';
-    const welcomeGreeting = 'Masuk akun ${AppConstants.appName}';
+    const greeting = AppConstants.appName;
+    const welcomeGreeting = 'Please enter your credentials to continue';
 
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+    final isSubmitting = ref.watch(authProvider).isLoading;
 
     return Scaffold(
       appBar: AppBar(elevation: 0, scrolledUnderElevation: 0),
@@ -121,14 +133,14 @@ class _LoginPageState extends ConsumerState<LoginPage>
           horizontal: 24,
           vertical: screenHeight * 0.08,
         ),
-        child: _buildSubmitButton('MASUK', screenWidth),
+        child: _buildSubmitButton('MASUK', screenWidth, isSubmitting),
       ),
     );
   }
 
-  Widget _buildSubmitButton(String text, double screenWidth) {
+  Widget _buildSubmitButton(String text, double screenWidth, bool isLoading) {
     return GestureDetector(
-      onTap: _onSubmit,
+      onTap: isLoading ? null : _onSubmit,
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.symmetric(
@@ -139,16 +151,25 @@ class _LoginPageState extends ConsumerState<LoginPage>
           color: AppTheme.primaryColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: screenWidth * 0.04,
-            fontFamily: AppTheme.fontFamily,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        child: isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : Text(
+                text,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: screenWidth * 0.04,
+                  fontFamily: AppTheme.fontFamily,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
       ),
     );
   }

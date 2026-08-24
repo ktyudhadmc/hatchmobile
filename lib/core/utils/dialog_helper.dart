@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:toastification/toastification.dart';
 
+import '../navigation/app_navigator.dart';
 import '../theme/app_theme.dart';
 
 class SnackBarHelper {
@@ -208,11 +209,17 @@ class DialogHelper {
     );
   }
 
+  // Deliberately not `Navigator.of(context, rootNavigator: true)` — the
+  // calling page can be unmounted (e.g. a redirect fires right after login
+  // succeeds, swapping /login for /scan) before this deferred callback
+  // runs, and a stale context is silently skipped by `context.mounted`,
+  // leaving the loading dialog stuck open forever. appNavigatorKey stays
+  // valid for the app's whole lifetime regardless of which page opened it.
   static void hideLoading(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (context.mounted) {
-        final navigator = Navigator.of(context, rootNavigator: true);
-        if (navigator.canPop()) navigator.pop();
+      final navigator = appNavigatorKey.currentState;
+      if (navigator != null && navigator.canPop()) {
+        navigator.pop();
       }
     });
   }

@@ -58,25 +58,36 @@ class PinCodeInput extends StatelessWidget {
           ),
           // const SizedBox(width: 8),
         ],
-        Expanded(
-          child: PinCodeTextField(
-            appContext: context,
-            length: length,
-            autoFocus: autoFocus,
-            controller: controller,
-            keyboardType: keyboardType,
-            animationType: AnimationType.fade,
-            textStyle: TextStyle(fontSize: fontSize),
-            pinTheme: PinTheme(
-              shape: PinCodeFieldShape.box,
-              borderRadius: BorderRadius.circular(8),
-              fieldHeight: fieldHeight,
-              fieldWidth: fieldWidth,
-              activeColor: AppTheme.primaryColor,
-              inactiveColor: const Color(0xFFF0F0F0),
-              selectedColor: AppTheme.primaryColor,
-            ),
-            onCompleted: onCompleted,
+        // pin_code_fields lays its boxes out via an internal Expanded, which
+        // needs a bounded-width Flex ancestor to work at all — so this stays
+        // wrapped in one, just capped to a compact width (instead of the
+        // Row's own width) so the group doesn't stretch to fill the screen.
+        SizedBox(
+          width: fieldWidth * length + 8.0 * (length - 1),
+          child: Row(
+            children: [
+              Expanded(
+                child: PinCodeTextField(
+                  appContext: context,
+                  length: length,
+                  autoFocus: autoFocus,
+                  controller: controller,
+                  keyboardType: keyboardType,
+                  animationType: AnimationType.fade,
+                  textStyle: TextStyle(fontSize: fontSize),
+                  pinTheme: PinTheme(
+                    shape: PinCodeFieldShape.box,
+                    borderRadius: BorderRadius.circular(8),
+                    fieldHeight: fieldHeight,
+                    fieldWidth: fieldWidth,
+                    activeColor: AppTheme.primaryColor,
+                    inactiveColor: const Color(0xFFF0F0F0),
+                    selectedColor: AppTheme.primaryColor,
+                  ),
+                  onCompleted: onCompleted,
+                ),
+              ),
+            ],
           ),
         ),
       ],

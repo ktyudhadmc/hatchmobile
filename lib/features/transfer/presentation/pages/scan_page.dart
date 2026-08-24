@@ -42,7 +42,6 @@ class _ScanPageState extends ConsumerState<ScanPage> {
   Future<void> _onMockScan() async {
     final pinController = TextEditingController();
 
-    // final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
     final buttonShape = RoundedRectangleBorder(
@@ -51,39 +50,71 @@ class _ScanPageState extends ConsumerState<ScanPage> {
 
     setState(() => _isMockDialogOpen = true);
 
-    final code = await showDialog<String>(
+    final code = await showModalBottomSheet<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(
-          'Basket Code',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        content: PinCodeInput(
-          prefix: 'A',
-          length: 4,
-          fontSize: screenHeight * 0.026,
-          fieldHeight: screenHeight * 0.04,
-          controller: pinController,
-          onCompleted: (pin) => Navigator.of(context).pop('A$pin'),
-        ),
-        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-        actions: [
-          Row(
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        top: false,
+        minimum: const EdgeInsets.only(bottom: 16),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            12,
+            20,
+            16 + MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Basket Code',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        fontFamily: AppTheme.fontFamily,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 48),
+                ],
+              ),
+              const SizedBox(height: 16),
+              PinCodeInput(
+                prefix: 'A',
+                length: 4,
+                fontSize: screenHeight * 0.026,
+                fieldHeight: screenHeight * 0.04,
+                controller: pinController,
+                onCompleted: (pin) => Navigator.of(context).pop('A$pin'),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
                 child: OutlinedButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.primaryColor,
                     side: const BorderSide(color: AppTheme.primaryColor),
                     shape: buttonShape,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text('BATAL'),
+                  child: const Text('Cancel'),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => Navigator.of(
                     context,
@@ -92,13 +123,14 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                     backgroundColor: AppTheme.primaryColor,
                     foregroundColor: Colors.white,
                     shape: buttonShape,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text('CARI'),
+                  child: const Text('Search'),
                 ),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
 

@@ -8,6 +8,7 @@ import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/home/presentation/pages/history_page.dart';
 import '../../features/transfer/presentation/pages/scan_page.dart';
+import '../navigation/app_navigator.dart';
 
 /// Notifies go_router whenever [authProvider] changes, so it re-runs
 /// `redirect` on whatever page the user is currently on. Deliberately not
@@ -25,6 +26,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final authRefreshListenable = _AuthRefreshListenable(ref);
 
   return GoRouter(
+    navigatorKey: appNavigatorKey,
     initialLocation: '/splash',
     refreshListenable: authRefreshListenable,
     redirect: (context, state) {

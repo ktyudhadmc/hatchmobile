@@ -117,7 +117,7 @@ class _HistoryDateRangeFilterSheetState
   }
 
   void _reset() {
-    final range = _RangeShortcut.oneWeekAgo.rangeFrom(_today());
+    final range = _RangeShortcut.today.rangeFrom(_today());
     setState(() {
       _start = range.start;
       _end = range.end;
