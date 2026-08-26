@@ -24,35 +24,64 @@ class HistoryDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      controller: scrollController,
-      padding: const EdgeInsets.all(16),
-      physics: const AlwaysScrollableScrollPhysics(),
+    // header comes straight from props (already in hand before this widget
+    // even builds), so it's safe to pin it outside the scroll area — only
+    // the basket list, which depends on the in-flight detail fetch, needs
+    // to scroll.
+    return Column(
       children: [
-        _SummaryCard(header: header),
-        const SizedBox(height: 16),
-        Text('Daftar Basket', style: Theme.of(context).textTheme.titleMedium),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SummaryCard(header: header),
+              const SizedBox(height: 16),
+              Text(
+                'List of Basket',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 8),
-        switch (detail) {
-          AsyncError() => const _Placeholder(
-            message: 'Gagal memuat detail riwayat',
-            icon: Icons.error_outline,
-          ),
-          AsyncData(value: final baskets) when baskets.isEmpty =>
-            const _Placeholder(
-              message: 'Belum ada basket diterima',
-              icon: Icons.inventory_2_outlined,
+        Expanded(
+          // showModalBottomSheet doesn't add safe-area insets on its own
+          // (useSafeArea defaults to false), and on gesture-nav Android
+          // MediaQuery.padding.bottom often reports 0 — so `minimum` is
+          // what actually keeps the last card clear of the system nav bar.
+          child: SafeArea(
+            top: false,
+            minimum: const EdgeInsets.only(bottom: 16),
+            child: ListView(
+              controller: scrollController,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                switch (detail) {
+                  AsyncError() => const _Placeholder(
+                    message: 'Error loading details',
+                    icon: Icons.error_outline,
+                  ),
+                  AsyncData(value: final baskets) when baskets.isEmpty =>
+                    const _Placeholder(
+                      message: 'This transfer is empty',
+                      icon: Icons.inventory_2_outlined,
+                    ),
+                  AsyncData(value: final baskets) => Column(
+                    children: baskets
+                        .map((basket) => _BasketCard(basket: basket))
+                        .toList(),
+                  ),
+                  _ => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                },
+              ],
             ),
-          AsyncData(value: final baskets) => Column(
-            children: baskets
-                .map((basket) => _BasketCard(basket: basket))
-                .toList(),
           ),
-          _ => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(child: CircularProgressIndicator()),
-          ),
-        },
+        ),
       ],
     );
   }
@@ -188,11 +217,11 @@ class _BasketCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            'Grade ${grade.grade}',
+            grade.grade,
             style: const TextStyle(color: Color(0xFF7B7B7B), fontSize: 12),
           ),
           Text(
-            'Dikirim ${grade.quantity} · Diterima ${grade.receivedQuantity ?? 0}',
+            'Shipped ${grade.quantity} · Received ${grade.receivedQuantity ?? 0}',
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ],

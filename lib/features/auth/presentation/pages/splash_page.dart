@@ -14,10 +14,11 @@ class SplashPage extends StatefulWidget {
   State<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateMixin {
+class _SplashPageState extends State<SplashPage>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _animationController;
-  late final Animation<double> _fadeAnimation;
-  late final Animation<double> _scaleAnimation;
+  // late final Animation<double> _fadeAnimation;
+  // late final Animation<double> _scaleAnimation;
 
   @override
   void initState() {
@@ -28,13 +29,13 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
       vsync: this,
     );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
-    );
+    // _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    //   CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+    // );
 
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
+    // _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+    //   CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    // );
 
     _animationController.forward();
   }
@@ -54,17 +55,24 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
         color: Colors.white,
         child: Stack(
           children: [
+            // Center(
+            //   child: AnimatedBuilder(
+            //     animation: _animationController,
+            //     builder: (context, child) {
+            //       return FadeTransition(
+            //         opacity: _fadeAnimation,
+            //         child: ScaleTransition(
+            //           scale: _scaleAnimation,
+            //           child: child,
+            //         ),
+            //       );
+            //     },
+            //     child: Image.asset(AssetConstants.logoLauncher, height: 120),
+            //     // child: SvgPicture.asset(AssetConstants.logoPeternak, height: 120),
+            //   ),
+            // ),
             Center(
-              child: AnimatedBuilder(
-                animation: _animationController,
-                builder: (context, child) {
-                  return FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: ScaleTransition(scale: _scaleAnimation, child: child),
-                  );
-                },
-                child: SvgPicture.asset(AssetConstants.logoPeternak, height: 120),
-              ),
+              child: Image.asset(AssetConstants.logoLauncher, height: 120),
             ),
             Positioned(
               bottom: 72,
@@ -75,12 +83,20 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                   children: [
                     Container(
                       margin: const EdgeInsets.only(bottom: 4),
-                      constraints: const BoxConstraints(maxWidth: 32, minWidth: 24),
-                      child: SvgPicture.asset(AssetConstants.logoDarmaMultiCipta),
+                      constraints: const BoxConstraints(
+                        maxWidth: 32,
+                        minWidth: 24,
+                      ),
+                      child: SvgPicture.asset(
+                        AssetConstants.logoDarmaMultiCipta,
+                      ),
                     ),
                     const Text(
                       'PT. DARMA MULTI CIPTA',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),

@@ -8,7 +8,7 @@ import '../../../transfer/presentation/providers/transfer_history_provider.dart'
 import '../widgets/history_header_list.dart';
 import '../widgets/history_search_filter_bar.dart';
 
-/// Riwayat — history of past transfers. Search + "last N months" narrow
+/// Riwayat — history of past transfers. Search + date range narrow
 /// [historyHeadersProvider]'s list; tapping a header will open its detail
 /// (transfer info + basket list) in a follow-up.
 class HistoryPage extends ConsumerWidget {
@@ -19,13 +19,14 @@ class HistoryPage extends ConsumerWidget {
     final currentRoute = GoRouterState.of(context).matchedLocation;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Riwayat Penerimaan')),
+      appBar: AppBar(title: const Text('History')),
       body: Column(
         children: [
           const HistorySearchFilterBar(),
           Expanded(
             child: RefreshableView(
-              onRefresh: () => ref.read(historyHeadersProvider.notifier).fetch(),
+              onRefresh: () =>
+                  ref.read(historyHeadersProvider.notifier).fetch(),
               child: const HistoryHeaderList(),
             ),
           ),

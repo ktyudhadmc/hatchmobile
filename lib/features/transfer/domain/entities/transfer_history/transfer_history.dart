@@ -16,4 +16,9 @@ class TransferHistory {
   final String branch;
   final int? sentbasketCount;
   final int? receivedBasketCount;
+
+  int get basketRemaining =>
+      (sentbasketCount ?? 0) - (receivedBasketCount ?? 0);
+
+  bool get isComplete => basketRemaining == 0;
 }

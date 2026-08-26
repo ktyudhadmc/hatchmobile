@@ -62,11 +62,12 @@ class TransferRepositoryImpl implements TransferRepository {
   }
 
   @override
-  Future<List<TransferHistory>> getAllHistoryHeaderReceive({
-    required int range,
-  }) async {
+  Future<List<TransferHistory>> getAllHistoryHeaderReceive(
+    String startDate,
+    String endDate,
+  ) async {
     try {
-      return await _remote.getAllHistoryHeaderReceive(range: range);
+      return await _remote.getAllHistoryHeaderReceive(startDate, endDate);
     } on DioException catch (e) {
       throw _unwrap(e);
     }

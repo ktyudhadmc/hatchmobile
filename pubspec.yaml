@@ -1,5 +1,5 @@
 name: hatchmobile
-description: "A new Flutter project."
+description: "Hatchery Mobile"
 publish_to: "none"
 version: 0.1.0
 
@@ -36,6 +36,9 @@ dependencies:
 
   # QR / barcode scanning
   mobile_scanner: ^7.0.0
+
+  # PIN input fields
+  pin_code_fields: ^8.0.1
 
 dev_dependencies:
   flutter_test:

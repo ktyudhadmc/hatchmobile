@@ -7,9 +7,8 @@ import '../../features/auth/presentation/pages/profile_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/home/presentation/pages/history_page.dart';
-import '../../features/transfer/domain/entities/transfer_basket.dart';
 import '../../features/transfer/presentation/pages/scan_page.dart';
-import '../../features/transfer/presentation/pages/transfer_confirm_page.dart';
+import '../navigation/app_navigator.dart';
 
 /// Notifies go_router whenever [authProvider] changes, so it re-runs
 /// `redirect` on whatever page the user is currently on. Deliberately not
@@ -27,6 +26,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final authRefreshListenable = _AuthRefreshListenable(ref);
 
   return GoRouter(
+    navigatorKey: appNavigatorKey,
     initialLocation: '/splash',
     refreshListenable: authRefreshListenable,
     redirect: (context, state) {
@@ -36,7 +36,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isSplash = state.matchedLocation == '/splash';
       final isLoggingIn = state.matchedLocation == '/login';
 
-      if (isLoading) return isSplash ? null : '/splash';
+      // While actively submitting on /login, stay put — the page shows its
+      // own inline spinner and toasts the result. Only a "cold" loading
+      // state (session restore on app start, reached from anywhere else)
+      // should bounce to /splash.
+      if (isLoading) return (isSplash || isLoggingIn) ? null : '/splash';
       if (!isAuthenticated) return isLoggingIn ? null : '/login';
       if (isLoggingIn || isSplash) return '/scan';
       return null;
@@ -66,16 +70,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/profile',
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: ProfilePage()),
-      ),
-      GoRoute(
-        path: '/transfer/confirm',
-        // Only reachable right after a scan, which always passes the
-        // scanned basket via `extra` — this guard is scoped to just this
-        // route so it doesn't run on every navigation.
-        redirect: (context, state) =>
-            state.extra is! TransferBasket ? '/scan' : null,
-        builder: (context, state) =>
-            TransferConfirmPage(basket: state.extra as TransferBasket),
       ),
     ],
   );

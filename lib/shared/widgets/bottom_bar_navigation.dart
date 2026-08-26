@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-// import 'package:hatchmobile/features/transfer/data/models/transfer_basket_model.dart';
 
 import '../../core/theme/app_theme.dart';
-// import '../../features/transfer/domain/repositories/mock_basket_response.dart';
 
 /// Notched bottom bar with Home (left) and Profile (right) — the notch is
 /// where [ScanFab] docks. Used together on every top-level page, e.g.:
@@ -30,24 +28,14 @@ class BottomBarNavigation extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _NavItem(
-            icon: Icons.home_rounded,
-            label: 'Beranda',
+            icon: Icons.history,
+            label: 'History',
             isActive: currentRoute == '/home',
             onTap: () => context.go('/home'),
-            // isActive: currentRoute == '/transfer/confirm',
-            // `push`, not `go` — `go` replaces the whole stack, so there'd
-            // be nothing left for the confirm page's `context.pop()` to
-            // return to after confirming.
-            // onTap: () => context.pushReplacement(
-            //   '/transfer/confirm',
-            //   extra: TransferBasketModel.fromJson(
-            //     mockBasketResponseJson['data'] as Map<String, dynamic>,
-            //   ),
-            // ),
           ),
           _NavItem(
             icon: Icons.person_rounded,
-            label: 'Akun',
+            label: 'Profile',
             isActive: currentRoute == '/profile',
             onTap: () => context.go('/profile'),
           ),

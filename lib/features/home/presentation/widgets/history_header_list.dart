@@ -13,7 +13,7 @@ class HistoryHeaderList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final headersState = ref.watch(historyHeadersProvider);
-    final headers = ref.watch(filteredHistoryHeadersProvider);
+    final headers = headersState.valueOrNull ?? const [];
 
     if (headersState.isLoading) {
       return const _FillScrollView(
@@ -24,19 +24,16 @@ class HistoryHeaderList extends ConsumerWidget {
     if (headersState.hasError) {
       return const _FillScrollView(
         child: _Placeholder(
-          message: 'Gagal memuat riwayat transfer',
+          message: 'Error loading details',
           icon: Icons.error_outline,
         ),
       );
     }
 
     if (headers.isEmpty) {
-      final hasAnyHeaders = (headersState.valueOrNull ?? const []).isNotEmpty;
-      return _FillScrollView(
+      return const _FillScrollView(
         child: _Placeholder(
-          message: hasAnyHeaders
-              ? 'Tidak ada riwayat yang cocok'
-              : 'Belum ada riwayat transfer',
+          message: 'This transfer is empty',
           icon: Icons.history_rounded,
         ),
       );
@@ -118,9 +115,7 @@ class _HeaderCard extends StatelessWidget {
           color: Colors.white,
           border: Border.all(color: const Color(0xffF5F8FA)),
           borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
-            BoxShadow(color: Color(0x19000000), blurRadius: 6),
-          ],
+          boxShadow: const [BoxShadow(color: Color(0x19000000), blurRadius: 6)],
         ),
         child: Row(
           children: [
@@ -148,6 +143,8 @@ class _HeaderCard extends StatelessWidget {
               ),
             ),
             Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Text(
                   header.branch,
@@ -159,7 +156,7 @@ class _HeaderCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Received: ${header.receivedBasketCount ?? 0}',
+                  'Shipped ${header.sentbasketCount} · Received ${header.receivedBasketCount ?? 0}',
                   style: const TextStyle(
                     color: Color(0xFF7B7B7B),
                     fontSize: 12,

@@ -13,11 +13,12 @@ class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
   Future<void> _logout(BuildContext context, WidgetRef ref) async {
-    final confirmed = await DialogHelper.confirm(
+    final confirmed = await DialogHelper.confirmSheet(
       context,
-      title: 'Keluar',
-      message: 'Apakah Anda yakin ingin keluar?',
-      confirmLabel: 'Keluar',
+      title: 'Sign Out',
+      message: 'Are you sure you want to sign out?',
+      confirmLabel: 'Yes',
+      cancelLabel: 'No',
       isDanger: true,
     );
 
@@ -32,7 +33,7 @@ class ProfilePage extends ConsumerWidget {
     final currentRoute = GoRouterState.of(context).matchedLocation;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Akun')),
+      appBar: AppBar(title: const Text('Profile')),
       body: RefreshableView(
         onRefresh: () => ref.read(authProvider.notifier).refreshCurrentUser(),
         child: ListView(
@@ -43,7 +44,7 @@ class ProfilePage extends ConsumerWidget {
             const SizedBox(height: 24),
             _buildMenuItem(
               icon: Icons.exit_to_app_rounded,
-              label: 'Keluar',
+              label: 'Sign Out',
               onTap: () => _logout(context, ref),
             ),
           ],
