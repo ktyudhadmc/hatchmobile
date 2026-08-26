@@ -94,4 +94,68 @@ void main() {
       expect(find.byIcon(Icons.visibility_off), findsNothing);
     });
   });
+
+  group('FormTextField required validation', () {
+    Widget wrapInForm(GlobalKey<FormState> formKey, Widget child) =>
+        wrap(Form(key: formKey, child: child));
+
+    testWidgets('fails validation and shows an error when required and empty', (tester) async {
+      final formKey = GlobalKey<FormState>();
+
+      await tester.pumpWidget(
+        wrapInForm(
+          formKey,
+          FormTextField(
+            label: 'Username',
+            isRequired: true,
+            controller: TextEditingController(),
+          ),
+        ),
+      );
+
+      expect(formKey.currentState!.validate(), isFalse);
+      await tester.pump();
+
+      expect(find.text('Username is required'), findsOneWidget);
+    });
+
+    testWidgets('passes validation once a value is entered', (tester) async {
+      final formKey = GlobalKey<FormState>();
+      final controller = TextEditingController();
+
+      await tester.pumpWidget(
+        wrapInForm(
+          formKey,
+          FormTextField(
+            label: 'Username',
+            isRequired: true,
+            controller: controller,
+          ),
+        ),
+      );
+
+      await tester.enterText(find.byType(TextFormField), 'budi');
+      expect(formKey.currentState!.validate(), isTrue);
+      await tester.pump();
+
+      expect(find.text('Username is required'), findsNothing);
+    });
+
+    testWidgets('an optional field passes validation while empty', (tester) async {
+      final formKey = GlobalKey<FormState>();
+
+      await tester.pumpWidget(
+        wrapInForm(
+          formKey,
+          FormTextField(
+            label: 'Middle name',
+            isRequired: false,
+            controller: TextEditingController(),
+          ),
+        ),
+      );
+
+      expect(formKey.currentState!.validate(), isTrue);
+    });
+  });
 }

@@ -47,6 +47,14 @@ class FormTextField extends StatefulWidget {
 class _FormTextFieldState extends State<FormTextField> {
   late bool _obscureText = widget.isPassword ? true : widget.isObscure;
 
+  String? _validateRequired(String? value) {
+    if (!widget.isRequired) return null;
+    if (value == null || value.trim().isEmpty) {
+      return '${widget.label ?? 'This field'} is required';
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -101,7 +109,7 @@ class _FormTextFieldState extends State<FormTextField> {
             ),
           ),
           SizedBox(height: screenHeight * 0.01),
-          TextField(
+          TextFormField(
             controller: widget.controller,
             focusNode: widget.focusNode,
             obscureText: _obscureText,
@@ -111,6 +119,8 @@ class _FormTextFieldState extends State<FormTextField> {
             keyboardType: widget.keyboardType,
             inputFormatters: widget.inputFormatters,
             maxLines: _obscureText ? 1 : (widget.isTextArea ? 3 : 1),
+            validator: _validateRequired,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             decoration: InputDecoration(
               hintText: widget.placeholder,
               prefixIcon: widget.prefix != null
@@ -139,6 +149,14 @@ class _FormTextFieldState extends State<FormTextField> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppTheme.errorColor),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppTheme.errorColor, width: 2),
               ),
               isDense: true,
             ),

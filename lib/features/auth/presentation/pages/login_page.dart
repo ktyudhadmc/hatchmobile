@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/constants/app_constants.dart';
-import '../../../../core/constants/asset_constants.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/dialog_helper.dart';
@@ -31,15 +29,10 @@ class LoginPage extends ConsumerStatefulWidget {
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
+  final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  // Not the shared listenAsync/DialogHelper loading dialog: a successful
-  // login immediately triggers go_router's redirect to /scan, which can
-  // unmount this page before the dialog's deferred pop runs — leaving it
-  // stuck open on top of /scan forever. An inline spinner on the submit
-  // button itself sidesteps the whole class of bug (no dialog, no
-  // Navigator involved).
   late final ProviderSubscription<AsyncValue<User?>> _authSubscription;
 
   @override
@@ -68,10 +61,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   void _onSubmit() {
-    if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
-      ToastHelper.error('Please enter email and password');
-      return;
-    }
+    if (!(_formKey.currentState?.validate() ?? false)) return;
 
     ref
         .read(authProvider.notifier)
@@ -98,11 +88,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SvgPicture.asset(
-              AssetConstants.logoPeternak,
-              height: screenHeight * 0.08,
-            ),
-            SizedBox(height: screenHeight * 0.04),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -113,7 +98,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: screenHeight * 0.01),
+                SizedBox(height: screenHeight * 0.005),
                 Text(
                   welcomeGreeting,
                   style: TextStyle(
@@ -122,19 +107,27 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
                 ),
                 SizedBox(height: screenHeight * 0.02),
-                FormTextField(
-                  label: 'Username',
-                  isRequired: true,
-                  controller: _usernameController,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                SizedBox(height: screenHeight * 0.02),
-                FormTextField(
-                  label: 'Password',
-                  isRequired: true,
-                  isPassword: true,
-                  controller: _passwordController,
-                  keyboardType: TextInputType.visiblePassword,
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FormTextField(
+                        label: 'Username',
+                        isRequired: true,
+                        controller: _usernameController,
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      SizedBox(height: screenHeight * 0.01),
+                      FormTextField(
+                        label: 'Password',
+                        isRequired: true,
+                        isPassword: true,
+                        controller: _passwordController,
+                        keyboardType: TextInputType.visiblePassword,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -166,13 +159,30 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: isLoading
-            ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3.4,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(width: screenWidth * 0.04),
+                  Text(
+                    "LOADING...",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: screenWidth * 0.04,
+                      fontFamily: AppTheme.fontFamily,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               )
             : Text(
                 text,

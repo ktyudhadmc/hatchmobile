@@ -36,7 +36,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isSplash = state.matchedLocation == '/splash';
       final isLoggingIn = state.matchedLocation == '/login';
 
-      if (isLoading) return isSplash ? null : '/splash';
+      // While actively submitting on /login, stay put — the page shows its
+      // own inline spinner and toasts the result. Only a "cold" loading
+      // state (session restore on app start, reached from anywhere else)
+      // should bounce to /splash.
+      if (isLoading) return (isSplash || isLoggingIn) ? null : '/splash';
       if (!isAuthenticated) return isLoggingIn ? null : '/login';
       if (isLoggingIn || isSplash) return '/scan';
       return null;
