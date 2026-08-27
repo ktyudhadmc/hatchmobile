@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -33,10 +32,10 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     });
   }
 
-  /// Dev-only shortcut: pretend a QR was scanned and feed the code straight
-  /// into the same [scanBasketProvider] flow a real detection would, so the
-  /// rest of the pipeline (GET basket -> receive sheet -> POST) is exercised
-  /// against the real backend without needing a physical QR code. Basket
+  /// Manual entry shortcut: pretend a QR was scanned and feed the code
+  /// straight into the same [scanBasketProvider] flow a real detection
+  /// would, so the rest of the pipeline (GET basket -> receive sheet ->
+  /// POST) can be exercised without needing a physical QR code. Basket
   /// codes are always "A" + a 4-digit number, so "A" is a fixed prefix and
   /// only the digits are entered, PIN-field style.
   Future<void> _onMockScan() async {
@@ -226,8 +225,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                   }),
                 ),
               ),
-              if (kDebugMode &&
-                  _scannedBasket == null &&
+              if (_scannedBasket == null &&
                   !_basketNotFound &&
                   !_isMockDialogOpen)
                 Positioned(
