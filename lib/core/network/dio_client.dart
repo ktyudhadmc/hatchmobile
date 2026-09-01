@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -21,6 +24,8 @@ final dioProvider = Provider<Dio>((ref) {
     ),
   );
 
+  dio.httpClientAdapter = IOHttpClientAdapter(createHttpClient: _createHttpClient);
+
   final storage = ref.watch(secureStorageProvider);
   final connectivity = ref.watch(connectivityServiceProvider);
 
@@ -32,6 +37,30 @@ final dioProvider = Provider<Dio>((ref) {
 
   return dio;
 });
+
+/// Some Wi-Fi networks advertise IPv6 (dual-stack) but the IPv6 route is
+/// actually broken or badly rate-limited, while IPv4 works fine. Browsers
+/// race both and fall back to IPv4 within milliseconds (Happy Eyeballs);
+/// `dart:io`'s [HttpClient] does not, so on those networks every request
+/// stalls until the connect timeout even though the server is reachable.
+/// Resolving IPv4 addresses first sidesteps that, while still falling back
+/// to the default (dual-stack) lookup on genuinely IPv6-only networks.
+HttpClient _createHttpClient() {
+  final client = HttpClient();
+  client.connectionFactory = (uri, proxyHost, proxyPort) async {
+    List<InternetAddress> addresses;
+    try {
+      addresses = await InternetAddress.lookup(uri.host, type: InternetAddressType.IPv4);
+    } catch (_) {
+      addresses = const [];
+    }
+    if (addresses.isEmpty) {
+      return Socket.startConnect(uri.host, uri.port);
+    }
+    return Socket.startConnect(addresses.first, uri.port);
+  };
+  return client;
+}
 
 class _AuthInterceptor extends Interceptor {
   _AuthInterceptor(this._storage);
