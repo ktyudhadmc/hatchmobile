@@ -12,31 +12,40 @@ class AppException implements Exception {
 }
 
 class NetworkException extends AppException {
-  const NetworkException([super.message = 'Tidak ada koneksi internet']);
+  const NetworkException([super.message = 'No internet connection']);
+}
+
+/// The device has a working network interface (Wi-Fi/data), but the
+/// request itself failed to reach the server (timeout, DNS/TLS failure,
+/// server down, etc.). Kept distinct from [NetworkException] so the
+/// message shown to the user matches what's actually wrong instead of
+/// always claiming there's no internet connection.
+class ServerUnreachableException extends AppException {
+  const ServerUnreachableException([
+    super.message = 'Unable to reach the server. Please check your connection or try again later.',
+  ]);
 }
 
 class BadRequestException extends AppException {
-  const BadRequestException([super.message = 'Permintaan tidak valid', dynamic data])
-      : super(data: data);
+  const BadRequestException([super.message = 'Invalid request', dynamic data]) : super(data: data);
 }
 
 class UnauthorizedException extends AppException {
-  const UnauthorizedException([super.message = 'Sesi telah berakhir, silakan masuk kembali']);
+  const UnauthorizedException([super.message = 'Your session has expired, please sign in again']);
 }
 
 class ForbiddenException extends AppException {
-  const ForbiddenException([super.message = 'Anda tidak memiliki akses']);
+  const ForbiddenException([super.message = 'You do not have access to this resource']);
 }
 
 class NotFoundException extends AppException {
-  const NotFoundException([super.message = 'Data tidak ditemukan']);
+  const NotFoundException([super.message = 'Data not found']);
 }
 
 class ValidationException extends AppException {
   final Map<String, List<String>> errors;
 
-  ValidationException(this.errors, [String message = 'Validasi gagal'])
-      : super(message, data: errors);
+  ValidationException(this.errors, [String message = 'Validation failed']) : super(message, data: errors);
 
   factory ValidationException.fromResponseData(dynamic data, [String? message]) {
     final rawErrors = data is Map ? data['errors'] : null;
@@ -46,14 +55,14 @@ class ValidationException extends AppException {
         parsed[key.toString()] = (value as List).map((e) => e.toString()).toList();
       });
     }
-    return ValidationException(parsed, message ?? 'Validasi gagal');
+    return ValidationException(parsed, message ?? 'Validation failed');
   }
 }
 
 class ServerException extends AppException {
-  const ServerException([super.message = 'Terjadi kesalahan pada server']);
+  const ServerException([super.message = 'A server error occurred']);
 }
 
 class CacheException extends AppException {
-  const CacheException([super.message = 'Gagal mengambil data lokal']);
+  const CacheException([super.message = 'Failed to load local data']);
 }
