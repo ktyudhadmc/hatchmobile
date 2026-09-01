@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants/app_constants.dart';
 import '../errors/app_exception.dart';
 import '../utils/device_info_helper.dart';
+import 'connectivity_service.dart';
 
 final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
   return const FlutterSecureStorage();
@@ -21,10 +22,11 @@ final dioProvider = Provider<Dio>((ref) {
   );
 
   final storage = ref.watch(secureStorageProvider);
+  final connectivity = ref.watch(connectivityServiceProvider);
 
   dio.interceptors.addAll([
     _AuthInterceptor(storage),
-    _ErrorInterceptor(),
+    _ErrorInterceptor(connectivity),
     LogInterceptor(requestBody: true, responseBody: true),
   ]);
 
@@ -55,8 +57,12 @@ class _AuthInterceptor extends Interceptor {
 /// Converts every [DioException] into an [AppException] subclass so the
 /// rest of the app never has to deal with Dio-specific error types.
 class _ErrorInterceptor extends Interceptor {
+  _ErrorInterceptor(this._connectivity);
+
+  final ConnectivityService _connectivity;
+
   @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
+  Future<void> onError(DioException err, ErrorInterceptorHandler handler) async {
     final response = err.response;
 
     switch (err.type) {
@@ -64,14 +70,14 @@ class _ErrorInterceptor extends Interceptor {
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
       case DioExceptionType.connectionError:
-        handler.next(_wrap(err, const NetworkException()));
+        handler.next(_wrap(err, await _networkOrServerException()));
         return;
       default:
         break;
     }
 
     if (response == null) {
-      handler.next(_wrap(err, const NetworkException()));
+      handler.next(_wrap(err, await _networkOrServerException()));
       return;
     }
 
@@ -79,16 +85,25 @@ class _ErrorInterceptor extends Interceptor {
     final message = (data is Map && data['message'] is String) ? data['message'] as String : null;
 
     final AppException mapped = switch (response.statusCode ?? 0) {
-      400 => BadRequestException(message ?? 'Permintaan tidak valid', data),
-      401 => UnauthorizedException(message ?? 'Sesi telah berakhir, silakan masuk kembali'),
-      403 => ForbiddenException(message ?? 'Anda tidak memiliki akses'),
-      404 => NotFoundException(message ?? 'Data tidak ditemukan'),
+      400 => BadRequestException(message ?? 'Invalid request', data),
+      401 => UnauthorizedException(message ?? 'Your session has expired, please sign in again'),
+      403 => ForbiddenException(message ?? 'You do not have access to this resource'),
+      404 => NotFoundException(message ?? 'Data not found'),
       422 => ValidationException.fromResponseData(data, message),
-      >= 500 => ServerException(message ?? 'Terjadi kesalahan pada server'),
-      _ => AppException(message ?? 'Terjadi kesalahan', data: data),
+      >= 500 => ServerException(message ?? 'A server error occurred'),
+      _ => AppException(message ?? 'Something went wrong', data: data),
     };
 
     handler.next(_wrap(err, mapped));
+  }
+
+  /// Distinguishes a genuinely offline device from one that has a working
+  /// network interface but simply failed to reach the server (timeout,
+  /// DNS/TLS failure, server down, etc.), so the message shown to the user
+  /// matches what's actually wrong.
+  Future<AppException> _networkOrServerException() async {
+    final hasNetworkInterface = await _connectivity.isConnected();
+    return hasNetworkInterface ? const ServerUnreachableException() : const NetworkException();
   }
 
   DioException _wrap(DioException err, AppException exception) {
