@@ -16,7 +16,7 @@ stages:
   - release
 
 # Pin an exact Flutter version for reproducible builds; bump deliberately.
-image: ghcr.io/cirruslabs/flutter:3.35.1
+image: ghcr.io/cirruslabs/flutter:3.35.5
 
 variables:
   PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
