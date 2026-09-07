@@ -10,19 +10,19 @@ void main() {
 
   group('subclass default messages', () {
     test('NetworkException', () {
-      expect(const NetworkException().message, 'Tidak ada koneksi internet');
+      expect(const NetworkException().message, 'No internet connection');
     });
 
     test('UnauthorizedException', () {
-      expect(const UnauthorizedException().message, 'Sesi telah berakhir, silakan masuk kembali');
+      expect(const UnauthorizedException().message, 'Your session has expired, please sign in again');
     });
 
     test('NotFoundException', () {
-      expect(const NotFoundException().message, 'Data tidak ditemukan');
+      expect(const NotFoundException().message, 'Data not found');
     });
 
     test('ServerException', () {
-      expect(const ServerException().message, 'Terjadi kesalahan pada server');
+      expect(const ServerException().message, 'A server error occurred');
     });
   });
 
@@ -47,7 +47,7 @@ void main() {
         'email': ['Email wajib diisi', 'Format email tidak valid'],
         'password': ['Password wajib diisi'],
       });
-      expect(exception.message, 'Validasi gagal');
+      expect(exception.message, 'Validation failed');
     });
 
     test('uses the given message when provided', () {

@@ -13,7 +13,8 @@ void main() {
       'id': 1,
       'transfer_code': '15082024TE0002',
       'transfer_date': '2024-01-15',
-      'branch': {'id': 1, 'name': 'Jabung'},
+      'production_date': '2024-01-10',
+      'farm': 'Jabung',
     },
   };
 
