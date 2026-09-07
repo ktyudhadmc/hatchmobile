@@ -8,6 +8,11 @@
 #   CI_PIPELINE_IID (an auto-incrementing per-project counter) becomes the
 #   versionCode, so every build - stable or pre-release - has a strictly
 #   increasing build number as Android requires.
+#
+# Requires android/app/google-services.json (gitignored, per-environment
+# Firebase config) uploaded as a GitLab Secure File. Set it in
+# Settings > CI/CD > Secure Files, then the download-secure-files tool
+# below fetches it into .secure_files/ during the build job.
 
 stages:
   - analyze
@@ -16,7 +21,7 @@ stages:
   - release
 
 # Pin an exact Flutter version for reproducible builds; bump deliberately.
-image: ghcr.io/cirruslabs/flutter:3.35.1
+image: ghcr.io/cirruslabs/flutter:3.35.5
 
 variables:
   PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
@@ -67,6 +72,8 @@ test:
 build:dev:
   stage: build
   script:
+    - curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
+    - cp .secure_files/google-services.json android/app/google-services.json
     - VERSION="0.0.0-dev.${CI_PIPELINE_IID}"
     - echo "Building $VERSION (build ${CI_PIPELINE_IID})"
     - flutter build apk --release --build-name="$VERSION" --build-number="$CI_PIPELINE_IID"
@@ -81,6 +88,8 @@ build:dev:
 build:tag:
   stage: build
   script:
+    - curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
+    - cp .secure_files/google-services.json android/app/google-services.json
     - VERSION="${CI_COMMIT_TAG#v}"
     - echo "Building $VERSION (build ${CI_PIPELINE_IID})"
     - flutter build apk --release --build-name="$VERSION" --build-number="$CI_PIPELINE_IID"
