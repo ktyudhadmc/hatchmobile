@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hatchmobile/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:hatchmobile/features/auth/domain/entities/user.dart';
+import 'package:hatchmobile/features/auth/domain/entities/user_hatchery.dart';
+import 'package:hatchmobile/features/auth/domain/entities/user_role.dart';
 import 'package:hatchmobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:hatchmobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:mocktail/mocktail.dart';
@@ -12,7 +14,12 @@ void main() {
   late _MockAuthRepository repository;
   late ProviderContainer container;
 
-  const user = User(id: 1, name: 'Budi');
+  const user = User(
+    id: 1,
+    name: 'Budi',
+    role: UserRole(id: 1, name: 'Admin'),
+    hatchery: UserHatchery(id: 1, name: 'Hatchery A'),
+  );
 
   setUp(() {
     repository = _MockAuthRepository();

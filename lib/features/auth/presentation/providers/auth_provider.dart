@@ -40,6 +40,15 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
     state = await AsyncValue.guard(() => getCurrentUserUsecase());
   }
 
+  /// Re-fetches the current user without clearing state to loading first —
+  /// used for pull-to-refresh. [restoreSession] would work too, but its
+  /// bare loading state makes `routerProvider`'s redirect (which bounces
+  /// anything loading to /splash) fire mid-refresh, landing back on /scan
+  /// once it resolves.
+  Future<void> refreshCurrentUser() async {
+    state = await AsyncValue.guard(() => getCurrentUserUsecase());
+  }
+
   Future<void> login({
     required String username,
     required String password,

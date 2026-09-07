@@ -1,0 +1,117 @@
+# Android build-only pipeline (no Play Store publishing yet).
+#
+# Versioning:
+#   - Stable release:  tag  vMAJOR.MINOR.PATCH            e.g. v1.2.3
+#   - Testing build:   tag  vMAJOR.MINOR.PATCH-rc.N        e.g. v1.2.3-rc.1
+#                       (also accepts -beta.N / -snapshot.N, same rules)
+#   The tag (minus the leading "v") becomes the APK's versionName.
+#   CI_PIPELINE_IID (an auto-incrementing per-project counter) becomes the
+#   versionCode, so every build - stable or pre-release - has a strictly
+#   increasing build number as Android requires.
+
+stages:
+  - analyze
+  - test
+  - build
+  - release
+
+# Pin an exact Flutter version for reproducible builds; bump deliberately.
+image: ghcr.io/cirruslabs/flutter:3.35.1
+
+variables:
+  PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
+
+.tag_semver_rules: &tag_semver_rules
+  - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+  - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-(rc|beta|snapshot)\.\d+$/
+
+.mr_and_branch_rules: &mr_and_branch_rules
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  - if: $CI_COMMIT_BRANCH == "develop"
+  - if: $CI_COMMIT_BRANCH == "main"
+
+cache:
+  key:
+    files:
+      - pubspec.lock
+  paths:
+    - .pub-cache/
+
+before_script:
+  - flutter pub get
+
+analyze:
+  stage: analyze
+  script:
+    - flutter analyze
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-(rc|beta|snapshot)\.\d+$/
+
+test:
+  stage: test
+  script:
+    - flutter test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-(rc|beta|snapshot)\.\d+$/
+
+# Ad-hoc APK for a merge request / branch push, not versioned by a tag.
+# Useful to grab a build for manual testing without cutting a release tag.
+build:dev:
+  stage: build
+  script:
+    - VERSION="0.0.0-dev.${CI_PIPELINE_IID}"
+    - echo "Building $VERSION (build ${CI_PIPELINE_IID})"
+    - flutter build apk --release --build-name="$VERSION" --build-number="$CI_PIPELINE_IID"
+  artifacts:
+    name: "hatchmobile-$VERSION"
+    paths:
+      - build/app/outputs/flutter-apk/app-release.apk
+    expire_in: 2 weeks
+  rules: *mr_and_branch_rules
+
+# Tagged build: vX.Y.Z (stable) or vX.Y.Z-rc.N / -beta.N / -snapshot.N (testing).
+build:tag:
+  stage: build
+  script:
+    - VERSION="${CI_COMMIT_TAG#v}"
+    - echo "Building $VERSION (build ${CI_PIPELINE_IID})"
+    - flutter build apk --release --build-name="$VERSION" --build-number="$CI_PIPELINE_IID"
+    - mv build/app/outputs/flutter-apk/app-release.apk "app-release-${VERSION}.apk"
+  artifacts:
+    name: "hatchmobile-$VERSION"
+    paths:
+      - app-release-*.apk
+    expire_in: never
+  rules: *tag_semver_rules
+
+# Publishes the tagged APK to the project's Generic Package Registry, then
+# creates a GitLab Release pointing at it. Runs after build:tag so the APK
+# artifact from that job is available here.
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: build:tag
+      artifacts: true
+  script:
+    - VERSION="${CI_COMMIT_TAG#v}"
+    - APK="app-release-${VERSION}.apk"
+    - PACKAGE_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/hatchmobile/${VERSION}/${APK}"
+    - |
+      curl --fail --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+        --upload-file "${APK}" \
+        "${PACKAGE_URL}"
+    - |
+      release-cli create \
+        --name "hatchmobile ${CI_COMMIT_TAG}" \
+        --tag-name "${CI_COMMIT_TAG}" \
+        --assets-link "{\"name\":\"${APK}\",\"url\":\"${PACKAGE_URL}\"}"
+  rules: *tag_semver_rules

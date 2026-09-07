@@ -28,14 +28,14 @@ class BottomBarNavigation extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _NavItem(
-            icon: Icons.home_rounded,
-            label: 'Beranda',
+            icon: Icons.history,
+            label: 'History',
             isActive: currentRoute == '/home',
             onTap: () => context.go('/home'),
           ),
           _NavItem(
             icon: Icons.person_rounded,
-            label: 'Akun',
+            label: 'Profile',
             isActive: currentRoute == '/profile',
             onTap: () => context.go('/profile'),
           ),
@@ -88,8 +88,13 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-/// Orange circular FAB that docks into [BottomBarNavigation]'s notch and
-/// opens the QR/barcode scan page.
+/// Orange circular FAB that docks into [BottomBarNavigation]'s notch.
+///
+/// Goes to `/scan` (not a `push`) because that route hosts the live
+/// scanner — pushing a second scanner route on top would leave two
+/// [TransferScannerView]s alive at once, both reacting to the same scan,
+/// which double-fires the scan -> confirm flow. `go` replaces the stack
+/// instead of stacking on it.
 class ScanFab extends StatelessWidget {
   const ScanFab({super.key});
 
@@ -98,7 +103,7 @@ class ScanFab extends StatelessWidget {
     return FloatingActionButton(
       shape: const CircleBorder(),
       backgroundColor: AppTheme.primaryColor,
-      onPressed: () => context.push('/scan'),
+      onPressed: () => context.go('/scan'),
       child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white),
     );
   }

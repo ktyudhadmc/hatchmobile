@@ -1,6 +1,10 @@
 name: hatchmobile
-description: "A new Flutter project."
-publish_to: 'none'
+description: "Hatchery Mobile"
+publish_to: "none"
+# Local/dev version only. Released builds get their versionName/versionCode
+# from the git tag via `flutter build --build-name/--build-number` in CI
+# (see .gitlab-ci.yml), which overrides this value — bump it whenever, it
+# has no effect on what ships.
 version: 0.1.0
 
 environment:
@@ -12,6 +16,12 @@ dependencies:
 
   # State management
   flutter_riverpod: ^2.6.1
+
+  # Firebase (each product is wrapped behind a module in lib/core/firebase)
+  firebase_core: ^4.3.0
+  firebase_analytics: ^12.3.0
+  firebase_remote_config: ^6.6.0
+  firebase_messaging: ^16.1.0
 
   # Networking
   dio: ^5.9.0
@@ -37,14 +47,25 @@ dependencies:
   # QR / barcode scanning
   mobile_scanner: ^7.0.0
 
+  # PIN input fields
+  pin_code_fields: ^8.0.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
   mocktail: ^1.0.4
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
 
   assets:
     - assets/logos/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/logos/launcher.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
