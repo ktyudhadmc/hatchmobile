@@ -22,15 +22,13 @@ variables:
   PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
 
 .tag_semver_rules: &tag_semver_rules
-  rules:
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-(rc|beta|snapshot)\.\d+$/
+  - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+  - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-(rc|beta|snapshot)\.\d+$/
 
 .mr_and_branch_rules: &mr_and_branch_rules
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "develop"
-    - if: $CI_COMMIT_BRANCH == "main"
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  - if: $CI_COMMIT_BRANCH == "develop"
+  - if: $CI_COMMIT_BRANCH == "main"
 
 cache:
   key:
@@ -47,16 +45,22 @@ analyze:
   script:
     - flutter analyze
   rules:
-    - *mr_and_branch_rules
-    - *tag_semver_rules
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-(rc|beta|snapshot)\.\d+$/
 
 test:
   stage: test
   script:
     - flutter test
   rules:
-    - *mr_and_branch_rules
-    - *tag_semver_rules
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-(rc|beta|snapshot)\.\d+$/
 
 # Ad-hoc APK for a merge request / branch push, not versioned by a tag.
 # Useful to grab a build for manual testing without cutting a release tag.
@@ -71,8 +75,7 @@ build:dev:
     paths:
       - build/app/outputs/flutter-apk/app-release.apk
     expire_in: 2 weeks
-  rules:
-    - *mr_and_branch_rules
+  rules: *mr_and_branch_rules
 
 # Tagged build: vX.Y.Z (stable) or vX.Y.Z-rc.N / -beta.N / -snapshot.N (testing).
 build:tag:
@@ -87,8 +90,7 @@ build:tag:
     paths:
       - app-release-*.apk
     expire_in: never
-  rules:
-    - *tag_semver_rules
+  rules: *tag_semver_rules
 
 # Publishes the tagged APK to the project's Generic Package Registry, then
 # creates a GitLab Release pointing at it. Runs after build:tag so the APK
@@ -112,5 +114,4 @@ release:
         --name "hatchmobile ${CI_COMMIT_TAG}" \
         --tag-name "${CI_COMMIT_TAG}" \
         --assets-link "{\"name\":\"${APK}\",\"url\":\"${PACKAGE_URL}\"}"
-  rules:
-    - *tag_semver_rules
+  rules: *tag_semver_rules
