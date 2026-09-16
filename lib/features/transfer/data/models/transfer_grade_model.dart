@@ -6,6 +6,7 @@ class TransferGradeModel extends TransferGrade {
     required super.grade,
     required super.quantity,
     super.receivedQuantity,
+    super.henhouse
   });
 
   factory TransferGradeModel.fromJson(Map<String, dynamic> json) {
@@ -14,6 +15,7 @@ class TransferGradeModel extends TransferGrade {
       grade: json['grade'] as String,
       quantity: json['quantity'] as int,
       receivedQuantity: json['received_quantity'] as int?,
+      henhouse: json['henhouse'] as String?
     );
   }
 

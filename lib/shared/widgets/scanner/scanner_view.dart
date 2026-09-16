@@ -18,8 +18,9 @@ class ScannerView extends StatefulWidget {
   /// Label di bawah area scan.
   final String? hint;
 
-  /// Ukuran kotak panduan visual. Murni dekoratif — deteksi tetap jalan di
-  /// seluruh frame kamera, bukan cuma di dalam kotak ini.
+  /// Ukuran kotak panduan visual — juga dipakai sebagai [scanWindow], jadi
+  /// deteksi QR cuma diproses di dalam area kotak ini (lebih cepat & lebih
+  /// sensitif dibanding scan seluruh frame).
   final double guideBoxSize;
 
   /// Geser posisi kotak panduan secara vertikal dari titik tengah layar.
@@ -73,8 +74,6 @@ class _ScannerViewState extends State<ScannerView> {
 
   @override
   Widget build(BuildContext context) {
-    // No scanWindow on MobileScanner — the whole camera frame is scannable.
-    // The box below is just a visual guide for where to line up the code.
     return ColoredBox(
       color: Colors.black,
       child: LayoutBuilder(
@@ -88,10 +87,24 @@ class _ScannerViewState extends State<ScannerView> {
             height: widget.guideBoxSize,
           );
 
+          // Restrict actual detection to the guide box instead of the full
+          // frame: less area to decode per frame means more attempts per
+          // second, which reads as both faster and more sensitive.
+          final scanWindow = Rect.fromLTWH(
+            guideRect.left / constraints.maxWidth,
+            guideRect.top / constraints.maxHeight,
+            guideRect.width / constraints.maxWidth,
+            guideRect.height / constraints.maxHeight,
+          );
+
           return Stack(
             fit: StackFit.expand,
             children: [
-              MobileScanner(controller: _controller, onDetect: _onDetect),
+              MobileScanner(
+                controller: _controller,
+                scanWindow: scanWindow,
+                onDetect: _onDetect,
+              ),
               IgnorePointer(
                 child: CustomPaint(
                   painter: _ScanGuidePainter(guideRect: guideRect),
