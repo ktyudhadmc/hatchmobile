@@ -48,7 +48,12 @@ class TransferScannerView extends ConsumerStatefulWidget {
 class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
   late final MobileScannerController _controller;
   late final bool _ownsController;
-  bool _isBusy = false;
+
+  // No isBusy gate on the scanner itself — detection runs on every frame
+  // (like dailyreport's QR scanner) so it feels instant in the field. What
+  // we still need to avoid is hammering the API with the same code on every
+  // frame while its lookup is in flight, so this tracks just that.
+  String? _lookupCode;
 
   // Deliberately not the shared listenAsync/DialogHelper loading dialog:
   // that dialog dismisses itself via a postFrameCallback, which races with
@@ -60,15 +65,23 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
   late final ProviderSubscription<AsyncValue<TransferBasket?>>
   _scanSubscription;
 
-  void _setBusy(bool value) {
-    if (mounted) setState(() => _isBusy = value); // ← pakai setState!
+  void _resetLookup() {
+    if (mounted) setState(() => _lookupCode = null);
   }
 
   @override
   void initState() {
     super.initState();
     _ownsController = widget.controller == null;
-    _controller = widget.controller ?? MobileScannerController();
+    _controller =
+        widget.controller ??
+        MobileScannerController(
+          formats: [BarcodeFormat.qrCode],
+          detectionSpeed: DetectionSpeed.unrestricted,
+          cameraResolution: const Size(1920, 1080),
+          autoStart: true,
+          autoZoom: true,
+        );
 
     _scanSubscription = ref.listenManual<AsyncValue<TransferBasket?>>(
       scanBasketProvider,
@@ -81,7 +94,7 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
             if (mounted) setState(() => _isLookingUpBasket = false);
 
             if (basket == null) {
-              _setBusy(false);
+              _resetLookup();
               return;
             }
 
@@ -92,6 +105,7 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
           },
           error: (err, stack) {
             if (mounted) setState(() => _isLookingUpBasket = false);
+            _resetLookup();
             widget.onBasketNotFound();
           },
         );
@@ -107,7 +121,7 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
     if (!oldWidget.paused && widget.paused) {
       _controller.stop();
     } else if (oldWidget.paused && !widget.paused) {
-      _setBusy(false);
+      _resetLookup();
       _controller.start();
     }
   }
@@ -133,10 +147,10 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
           children: [
             ScannerView(
               controller: _controller,
-              isBusy: _isBusy,
               guideOffsetY: constraints.maxHeight * 0.18,
               onDetect: (code) {
-                _setBusy(true);
+                if (code == _lookupCode) return;
+                setState(() => _lookupCode = code);
                 ref.read(scanBasketProvider.notifier).scan(code);
               },
             ),

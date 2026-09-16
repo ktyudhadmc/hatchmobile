@@ -168,9 +168,16 @@ class _TransferReceiveSheetState extends ConsumerState<TransferReceiveSheet>
             ],
           ),
           const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: basket.grades.map(_buildGradeBadge).toList(),
+          Column(
+            children: basket.grades
+                .map(_buildGradeRow)
+                .toList()
+                .expand((row) sync* {
+                  yield row;
+                  yield const SizedBox(height: 8);
+                })
+                .toList()
+              ..removeLast(),
           ),
           const SizedBox(height: 24),
           _buildActionArea(),
@@ -179,34 +186,66 @@ class _TransferReceiveSheetState extends ConsumerState<TransferReceiveSheet>
     );
   }
 
-  Widget _buildGradeBadge(TransferGrade grade) {
-    return Column(
-      children: [
-        Text(
-          grade.grade,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontFamily: AppTheme.fontFamily,
+  Widget _buildGradeRow(TransferGrade grade) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F7F7),
+        border: Border.all(color: const Color(0xFFDADADA)),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              grade.grade,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontFamily: AppTheme.fontFamily,
+                color: AppTheme.primaryColor,
+              ),
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          width: 56,
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFDADADA)),
-            borderRadius: BorderRadius.circular(10),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Grade: ${grade.grade}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontFamily: AppTheme.fontFamily,
+                  ),
+                ),
+                Text(
+                  'Henhouse: ${grade.henhouse ?? '-'}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF7B7B7B),
+                    fontFamily: AppTheme.fontFamily,
+                  ),
+                ),
+              ],
+            ),
           ),
-          child: Text(
+          Text(
             '${grade.quantity}',
-            textAlign: TextAlign.center,
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontFamily: AppTheme.fontFamily,
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
