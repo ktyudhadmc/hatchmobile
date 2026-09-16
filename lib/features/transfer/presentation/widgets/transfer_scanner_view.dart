@@ -38,7 +38,7 @@ class TransferScannerView extends ConsumerStatefulWidget {
   final bool paused;
 
   final void Function(TransferBasket basket) onBasketFound;
-  final VoidCallback onBasketNotFound;
+  final void Function(String code) onBasketNotFound;
 
   @override
   ConsumerState<TransferScannerView> createState() =>
@@ -76,9 +76,10 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
     _controller =
         widget.controller ??
         MobileScannerController(
-          formats: [BarcodeFormat.qrCode],
-          detectionSpeed: DetectionSpeed.unrestricted,
-          cameraResolution: const Size(1920, 1080),
+          // formats: [BarcodeFormat.qrCode],
+          // detectionSpeed: DetectionSpeed.unrestricted,
+          // cameraResolution: const Size(3840, 2160),
+          // lensType: CameraLensType.normal,
           autoStart: true,
           autoZoom: true,
         );
@@ -104,9 +105,10 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
             widget.onBasketFound(basket);
           },
           error: (err, stack) {
+            final code = _lookupCode;
             if (mounted) setState(() => _isLookingUpBasket = false);
             _resetLookup();
-            widget.onBasketNotFound();
+            widget.onBasketNotFound(code ?? '');
           },
         );
       },

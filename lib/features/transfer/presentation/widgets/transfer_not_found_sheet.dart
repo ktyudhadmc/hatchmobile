@@ -6,9 +6,17 @@ import '../../../../core/theme/app_theme.dart';
 /// basket — auto-dismisses via [onDismiss] after a short delay, or right
 /// away if KEMBALI is tapped, either way resuming the scanner.
 class TransferNotFoundSheet extends StatefulWidget {
-  const TransferNotFoundSheet({super.key, required this.onDismiss});
+  const TransferNotFoundSheet({
+    super.key,
+    required this.onDismiss,
+    required this.code,
+  });
 
   final VoidCallback onDismiss;
+
+  /// The raw code that was scanned/entered and failed to resolve, shown so
+  /// the user can tell whether it was misread or genuinely doesn't exist.
+  final String code;
 
   @override
   State<TransferNotFoundSheet> createState() => _TransferNotFoundSheetState();
@@ -52,6 +60,16 @@ class _TransferNotFoundSheetState extends State<TransferNotFoundSheet> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
+                fontFamily: AppTheme.fontFamily,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              widget.code,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black54,
                 fontFamily: AppTheme.fontFamily,
               ),
             ),

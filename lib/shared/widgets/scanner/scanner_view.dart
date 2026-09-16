@@ -48,6 +48,11 @@ class _ScannerViewState extends State<ScannerView> {
   late final MobileScannerController _controller;
   late final bool _ownsController;
 
+  // Zoom scale ([0, 1], MobileScanner's own scale) at the moment a pinch
+  // gesture starts, so onScaleUpdate can apply the pinch delta relative to
+  // it instead of jumping/resetting every frame.
+  double _zoomAtGestureStart = 0;
+
   @override
   void initState() {
     super.initState();
@@ -57,7 +62,7 @@ class _ScannerViewState extends State<ScannerView> {
         MobileScannerController(
           formats: [BarcodeFormat.qrCode],
           detectionSpeed: DetectionSpeed.unrestricted,
-          cameraResolution: const Size(1920, 1080),
+          cameraResolution: const Size(3840, 2160),
           autoStart: true,
           autoZoom: true,
         );
@@ -96,7 +101,24 @@ class _ScannerViewState extends State<ScannerView> {
           return Stack(
             fit: StackFit.expand,
             children: [
-              MobileScanner(controller: _controller, onDetect: _onDetect),
+              GestureDetector(
+                onScaleStart: (_) =>
+                    _zoomAtGestureStart = _controller.value.zoomScale,
+                onScaleUpdate: (details) {
+                  // MobileScannerController's zoom scale is linear [0, 1],
+                  // not a camera zoom factor, so map the pinch scale
+                  // logarithmically to keep the gesture feeling proportional
+                  // across the whole range instead of maxing out instantly.
+                  final delta = (details.scale - 1) * 0.5;
+                  _controller.setZoomScale(
+                    (_zoomAtGestureStart + delta).clamp(0.0, 1.0),
+                  );
+                },
+                child: MobileScanner(
+                  controller: _controller,
+                  onDetect: _onDetect,
+                ),
+              ),
               IgnorePointer(
                 child: CustomPaint(
                   painter: _ScanGuidePainter(guideRect: guideRect),
