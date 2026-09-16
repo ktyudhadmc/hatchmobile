@@ -46,6 +46,8 @@ before_script:
   - flutter pub get
 
 analyze:
+  tags:
+    - developerdmc-runner
   stage: analyze
   script:
     - flutter analyze
@@ -58,6 +60,8 @@ analyze:
 
 test:
   stage: test
+  tags:
+    - developerdmc-runner
   script:
     - flutter test
   rules:
@@ -71,6 +75,8 @@ test:
 # Useful to grab a build for manual testing without cutting a release tag.
 build:dev:
   stage: build
+  tags:
+    - developerdmc-runner
   script:
     - curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
     - cp .secure_files/google-services.json android/app/google-services.json
@@ -87,6 +93,8 @@ build:dev:
 # Tagged build: vX.Y.Z (stable) or vX.Y.Z-rc.N / -beta.N / -snapshot.N (testing).
 build:tag:
   stage: build
+  tags:
+    - developerdmc-runner
   script:
     - curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
     - cp .secure_files/google-services.json android/app/google-services.json
@@ -106,6 +114,8 @@ build:tag:
 # artifact from that job is available here.
 release:
   stage: release
+  tags:
+    - developerdmc-runner
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   needs:
     - job: build:tag
