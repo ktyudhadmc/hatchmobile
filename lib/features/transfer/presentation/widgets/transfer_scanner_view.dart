@@ -68,7 +68,14 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
   void initState() {
     super.initState();
     _ownsController = widget.controller == null;
-    _controller = widget.controller ?? MobileScannerController();
+    _controller =
+        widget.controller ??
+        MobileScannerController(
+          formats: [BarcodeFormat.qrCode],
+          detectionSpeed: DetectionSpeed.unrestricted,
+          cameraResolution: const Size(1920, 1080),
+          autoStart: true,
+        );
 
     _scanSubscription = ref.listenManual<AsyncValue<TransferBasket?>>(
       scanBasketProvider,
