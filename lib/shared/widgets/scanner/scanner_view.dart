@@ -59,6 +59,7 @@ class _ScannerViewState extends State<ScannerView> {
           detectionSpeed: DetectionSpeed.unrestricted,
           cameraResolution: const Size(1920, 1080),
           autoStart: true,
+          autoZoom: true,
         );
   }
 

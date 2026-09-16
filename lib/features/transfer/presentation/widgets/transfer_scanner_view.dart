@@ -80,6 +80,7 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
           detectionSpeed: DetectionSpeed.unrestricted,
           cameraResolution: const Size(1920, 1080),
           autoStart: true,
+          autoZoom: true,
         );
 
     _scanSubscription = ref.listenManual<AsyncValue<TransferBasket?>>(
