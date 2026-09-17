@@ -23,6 +23,7 @@ class ScanPage extends ConsumerStatefulWidget {
 class _ScanPageState extends ConsumerState<ScanPage> {
   TransferBasket? _scannedBasket;
   bool _basketNotFound = false;
+  String _notFoundCode = '';
   bool _isMockDialogOpen = false;
 
   void _resumeScanning() {
@@ -219,9 +220,10 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                     _scannedBasket = basket;
                     _basketNotFound = false;
                   }),
-                  onBasketNotFound: () => setState(() {
+                  onBasketNotFound: (code) => setState(() {
                     _scannedBasket = null;
                     _basketNotFound = true;
+                    _notFoundCode = code;
                   }),
                 ),
               ),
@@ -246,7 +248,10 @@ class _ScanPageState extends ConsumerState<ScanPage> {
               if (_basketNotFound)
                 Align(
                   alignment: Alignment.bottomCenter,
-                  child: TransferNotFoundSheet(onDismiss: _resumeScanning),
+                  child: TransferNotFoundSheet(
+                    onDismiss: _resumeScanning,
+                    code: _notFoundCode,
+                  ),
                 ),
             ],
           );

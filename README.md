@@ -33,3 +33,7 @@ git push origin <tag>
 ```
 
 The tag (minus `v`) becomes the app's version name; the CI pipeline number becomes its build number. No need to bump `version:` in `pubspec.yaml` — it's dev-only and gets overridden at build time (see comment there).
+
+### In-app update
+
+The app itself checks this project's latest GitLab release (Profile page) and can download/install the APK — see `lib/features/app_update/`. No token needed: the project is public with Releases set to "Everyone With Access" (Settings > General > Visibility), so the Releases API and its APK assets are readable anonymously. If that visibility is ever tightened, this feature will need a token added back (a GitLab Project Access Token, `read_api` scope — not a Deploy Token, those can't call the Releases API).

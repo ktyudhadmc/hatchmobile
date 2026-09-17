@@ -1,44 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hatchmobile/features/transfer/domain/entities/transfer_basket.dart';
+import 'package:hatchmobile/features/transfer/presentation/providers/transfer_provider.dart';
+import 'package:hatchmobile/features/transfer/presentation/widgets/scanner/scan_result_listener.dart';
+import 'package:hatchmobile/features/transfer/presentation/widgets/scanner/scanner_loading_overlay.dart';
+import 'package:hatchmobile/features/transfer/presentation/widgets/scanner/transfer_scanner_controller.dart';
+import 'package:hatchmobile/features/transfer/presentation/widgets/scanner/transfer_scanner_state.dart';
+import 'package:hatchmobile/shared/widgets/scanner/scanner_view.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
-import '../../../../shared/widgets/scanner/scanner_view.dart';
-import '../../domain/entities/transfer_basket.dart';
-import '../providers/transfer_provider.dart';
-
-/// Live camera view that scans a basket QR code and fetches its detail,
-/// handing the result to [onBasketFound] (or [onBasketNotFound] if the
-/// lookup fails) — the parent (ScanPage) owns what happens next (showing
-/// [TransferReceiveSheet] or a not-found sheet) and tells this widget when
-/// to resume via [paused]. Only mounted once, as Home's main content — see
-/// [ScanFab] for why it must not be pushed as a second route on top.
+/// Live camera view yang scan basket QR dan fetch detailnya.
+///
+/// Tanggung jawab widget ini hanya:
+///   1. Render kamera + overlay
+///   2. Delegasi semua logic ke kelas-kelas terpisah
+///
+/// Logic sensitivitas  → [buildTransferScannerController]
+/// Logic state          → [TransferScannerState]
+/// Logic reaksi hasil   → [ScanResultListener]
+/// Loading overlay UI  → [ScannerLoadingOverlay]
 class TransferScannerView extends ConsumerStatefulWidget {
   const TransferScannerView({
     super.key,
-    this.scannerBuilder,
     this.controller,
     this.paused = false,
     required this.onBasketFound,
     required this.onBasketNotFound,
   });
 
-  final Widget Function({
-    required void Function(String) onDetect,
-    required bool isBusy,
-    MobileScannerController? controller,
-  })?
-  scannerBuilder;
-
-  /// Controller from outside. When omitted, this widget creates and
-  /// disposes its own.
+  /// Controller dari luar (opsional).
+  /// Jika null, widget buat dan dispose sendiri.
   final MobileScannerController? controller;
 
-  /// Set by the parent while a scanned basket is being confirmed — camera
-  /// stays stopped and detections are ignored until this flips back false.
+  /// Saat true: kamera berhenti dan deteksi diabaikan.
   final bool paused;
 
   final void Function(TransferBasket basket) onBasketFound;
-  final VoidCallback onBasketNotFound;
+  final void Function(String code) onBasketNotFound;
 
   @override
   ConsumerState<TransferScannerView> createState() =>
@@ -46,100 +44,95 @@ class TransferScannerView extends ConsumerStatefulWidget {
 }
 
 class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
+  // ─── Controller ────────────────────────────────────────────────────────────
+
   late final MobileScannerController _controller;
   late final bool _ownsController;
 
-  // No isBusy gate on the scanner itself — detection runs on every frame
-  // (like dailyreport's QR scanner) so it feels instant in the field. What
-  // we still need to avoid is hammering the API with the same code on every
-  // frame while its lookup is in flight, so this tracks just that.
-  String? _lookupCode;
+  // ─── State ─────────────────────────────────────────────────────────────────
 
-  // Deliberately not the shared listenAsync/DialogHelper loading dialog:
-  // that dialog dismisses itself via a postFrameCallback, which races with
-  // anything pushed as a route right after it (see the receive sheet's
-  // history for the bug this caused). An inline overlay needs no Navigator,
-  // so there's nothing for it to race with.
-  bool _isLookingUpBasket = false;
+  TransferScannerState _scanState = const TransferScannerState();
 
-  late final ProviderSubscription<AsyncValue<TransferBasket?>>
-  _scanSubscription;
+  // ─── Listener ──────────────────────────────────────────────────────────────
 
-  void _resetLookup() {
-    if (mounted) setState(() => _lookupCode = null);
-  }
+  late final ScanResultListener _resultListener;
+  late final ProviderSubscription<AsyncValue<TransferBasket?>> _subscription;
+
+  // ─── Lifecycle ─────────────────────────────────────────────────────────────
 
   @override
   void initState() {
     super.initState();
+    _initController();
+    _initListener();
+  }
+
+  void _initController() {
     _ownsController = widget.controller == null;
-    _controller =
-        widget.controller ??
-        MobileScannerController(
-          formats: [BarcodeFormat.qrCode],
-          detectionSpeed: DetectionSpeed.unrestricted,
-          cameraResolution: const Size(1920, 1080),
-          autoStart: true,
-          autoZoom: true,
-        );
+    _controller = widget.controller ?? buildTransferScannerController();
+  }
 
-    _scanSubscription = ref.listenManual<AsyncValue<TransferBasket?>>(
+  void _initListener() {
+    _resultListener = ScanResultListener(
+      controller: _controller,
+      onStateChanged: _applyState,
+      onBasketFound: widget.onBasketFound,
+      onBasketNotFound: widget.onBasketNotFound,
+    );
+
+    _subscription = ref.listenManual<AsyncValue<TransferBasket?>>(
       scanBasketProvider,
-      (previous, next) {
-        next.when(
-          loading: () {
-            if (mounted) setState(() => _isLookingUpBasket = true);
-          },
-          data: (basket) async {
-            if (mounted) setState(() => _isLookingUpBasket = false);
-
-            if (basket == null) {
-              _resetLookup();
-              return;
-            }
-
-            await _controller.stop();
-            if (!mounted) return;
-
-            widget.onBasketFound(basket);
-          },
-          error: (err, stack) {
-            if (mounted) setState(() => _isLookingUpBasket = false);
-            _resetLookup();
-            widget.onBasketNotFound();
-          },
-        );
-      },
+      (_, next) => _resultListener.handle(next, _scanState.lookupCode),
       fireImmediately: false,
     );
   }
 
   @override
-  void didUpdateWidget(covariant TransferScannerView oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    if (!oldWidget.paused && widget.paused) {
-      _controller.stop();
-    } else if (oldWidget.paused && !widget.paused) {
-      _resetLookup();
-      _controller.start();
-    }
+  void didUpdateWidget(covariant TransferScannerView old) {
+    super.didUpdateWidget(old);
+    _handlePauseChange(wasPaused: old.paused, isPaused: widget.paused);
   }
 
   @override
   void dispose() {
-    _scanSubscription.close();
+    _subscription.close();
     if (_ownsController) _controller.dispose();
     super.dispose();
   }
 
+  // ─── Helpers ───────────────────────────────────────────────────────────────
+
+  void _applyState(TransferScannerState next) {
+    if (!mounted) return;
+    setState(() => _scanState = next);
+  }
+
+  void _handlePauseChange({required bool wasPaused, required bool isPaused}) {
+    if (!wasPaused && isPaused) {
+      _controller.stop();
+    } else if (wasPaused && !isPaused) {
+      _applyState(_scanState.resetLookup());
+      _controller.start();
+    }
+  }
+
+  /// Dipanggil sekali per QR code yang terdeteksi kamera.
+  ///
+  /// [code] adalah raw value hasil decode QR (isi [BarcodeCapture.rawValue]
+  /// di [ScannerView]) — untuk basket transfer, ini seharusnya basket code
+  /// (mis. "A0001"), bukan payload JSON atau URL.
+  void _onDetect(String code) {
+    if (_scanState.isAlreadyScanning(code)) return;
+    debugPrint('[TransferScanner] detected raw code: $code');
+
+    _applyState(_scanState.copyWith(lookupCode: code));
+    ref.read(scanBasketProvider.notifier).scan(code);
+  }
+
+  // ─── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    // LayoutBuilder rather than MediaQuery — this reports the space this
-    // widget actually has (body area, below the AppBar), which is what
-    // ScannerView's own guide-box math is relative to. ScanPage replicates
-    // this same formula to position the debug button under the guide box,
-    // so both need to agree on the same height.
     return LayoutBuilder(
       builder: (context, constraints) {
         return Stack(
@@ -148,31 +141,10 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
             ScannerView(
               controller: _controller,
               guideOffsetY: constraints.maxHeight * 0.18,
-              onDetect: (code) {
-                if (code == _lookupCode) return;
-                setState(() => _lookupCode = code);
-                ref.read(scanBasketProvider.notifier).scan(code);
-              },
+              onDetect: _onDetect,
+              hint: _scanState.lookupCode,
             ),
-            if (_isLookingUpBasket)
-              Positioned.fill(
-                child: ColoredBox(
-                  color: Colors.black45,
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        CircularProgressIndicator(color: Colors.white),
-                        SizedBox(height: 12),
-                        Text(
-                          'Mencari basket...',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            if (_scanState.isLookingUp) const ScannerLoadingOverlay(),
           ],
         );
       },
