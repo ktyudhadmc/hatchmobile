@@ -9,10 +9,13 @@
 #   versionCode, so every build - stable or pre-release - has a strictly
 #   increasing build number as Android requires.
 #
-# Requires android/app/google-services.json (gitignored, per-environment
-# Firebase config) uploaded as a GitLab Secure File. Set it in
-# Settings > CI/CD > Secure Files, then the download-secure-files tool
-# below fetches it into .secure_files/ during the build job.
+# Requires the following GitLab Secure Files (Settings > CI/CD > Secure
+# Files); the download-secure-files tool below fetches them into
+# .secure_files/ during the build job:
+#   - google-services.json     per-environment Firebase config
+#   - upload-keystore.jks      release signing keystore
+# Signing also needs these masked CI/CD variables (Settings > CI/CD >
+# Variables): KEYSTORE_PASSWORD, KEY_PASSWORD, KEY_ALIAS.
 #
 # In-app update (lib/features/app_update/) reads this project's Releases API
 # with no auth — it's public with Releases set to "Everyone With Access".
@@ -83,9 +86,21 @@ build:dev:
   script:
     - curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
     - cp .secure_files/google-services.json android/app/google-services.json
-    - VERSION="0.0.0-dev.${CI_PIPELINE_IID}"
+
+    # Setup keystore dari GitLab Secure File
+    - cp .secure_files/upload-keystore.jks android/app/upload-keystore.jks
+    - |
+      cat > android/app/key.properties <<EOF
+      storePassword=${KEYSTORE_PASSWORD}
+      keyPassword=${KEY_PASSWORD}
+      keyAlias=${KEY_ALIAS}
+      storeFile=upload-keystore.jks
+      EOF
+
+    - VERSION="${CI_COMMIT_TAG#v}"
     - echo "Building $VERSION (build ${CI_PIPELINE_IID})"
     - flutter build apk --release --build-name="$VERSION" --build-number="$CI_PIPELINE_IID"
+    - mv build/app/outputs/flutter-apk/app-release.apk "app-release-${VERSION}.apk"
   artifacts:
     name: "hatchmobile-$VERSION"
     paths:
@@ -101,6 +116,17 @@ build:tag:
   script:
     - curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
     - cp .secure_files/google-services.json android/app/google-services.json
+
+    # Setup keystore dari GitLab Secure File
+    - cp .secure_files/upload-keystore.jks android/app/upload-keystore.jks
+    - |
+      cat > android/app/key.properties <<EOF
+      storePassword=${KEYSTORE_PASSWORD}
+      keyPassword=${KEY_PASSWORD}
+      keyAlias=${KEY_ALIAS}
+      storeFile=upload-keystore.jks
+      EOF
+
     - VERSION="${CI_COMMIT_TAG#v}"
     - echo "Building $VERSION (build ${CI_PIPELINE_IID})"
     - flutter build apk --release --build-name="$VERSION" --build-number="$CI_PIPELINE_IID"
