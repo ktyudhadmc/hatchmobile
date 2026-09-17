@@ -116,8 +116,14 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
     }
   }
 
+  /// Dipanggil sekali per QR code yang terdeteksi kamera.
+  ///
+  /// [code] adalah raw value hasil decode QR (isi [BarcodeCapture.rawValue]
+  /// di [ScannerView]) — untuk basket transfer, ini seharusnya basket code
+  /// (mis. "A0001"), bukan payload JSON atau URL.
   void _onDetect(String code) {
     if (_scanState.isAlreadyScanning(code)) return;
+    debugPrint('[TransferScanner] detected raw code: $code');
 
     _applyState(_scanState.copyWith(lookupCode: code));
     ref.read(scanBasketProvider.notifier).scan(code);
@@ -136,6 +142,7 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
               controller: _controller,
               guideOffsetY: constraints.maxHeight * 0.18,
               onDetect: _onDetect,
+              hint: _scanState.lookupCode,
             ),
             if (_scanState.isLookingUp) const ScannerLoadingOverlay(),
           ],

@@ -15,7 +15,8 @@ class ScannerView extends StatefulWidget {
   /// Kalau true, scanner tidak akan memproses barcode baru.
   final bool isBusy;
 
-  /// Label di bawah area scan.
+  /// Badge di bagian bawah **dalam** guide box, lebar mengikuti guide box.
+  /// Dipakai buat nampilin raw value QR yang barusan terdeteksi.
   final String? hint;
 
   /// Ukuran kotak panduan visual. Murni dekoratif — deteksi tetap jalan di
@@ -126,22 +127,60 @@ class _ScannerViewState extends State<ScannerView> {
               ),
               if (widget.hint != null && widget.hint!.isNotEmpty)
                 Positioned(
-                  bottom: 16,
-                  left: 24,
-                  right: 24,
-                  child: Text(
-                    widget.hint!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      shadows: [Shadow(blurRadius: 8, color: Colors.black)],
-                    ),
-                  ),
+                  left: guideRect.left + _HintBadge.horizontalInset,
+                  width: guideRect.width - _HintBadge.horizontalInset * 2,
+                  top: guideRect.bottom - _HintBadge.height - 12,
+                  child: _HintBadge(text: widget.hint!),
                 ),
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// Badge kecil di dalam guide box menampilkan [text] (biasanya raw value QR
+/// yang barusan kedeteksi). Lebar mengikuti parent (guide box), jadi teks
+/// panjang di-ellipsis daripada meluber keluar box.
+class _HintBadge extends StatelessWidget {
+  const _HintBadge({required this.text});
+
+  final String text;
+
+  static const double height = 28;
+
+  /// Jarak minimum badge dari sisi kiri/kanan guide box, supaya walau
+  /// teksnya panjang dan ke-clamp, badge tidak mepet ke garis box.
+  static const double horizontalInset = 16;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        height: height,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.65),
+          borderRadius: BorderRadius.circular(height / 2),
+        ),
+        // widthFactor: 1 shrink-wraps to the text so the badge stays narrow
+        // for short values; without it Align expands to fill the row like
+        // Container's own `alignment` did before.
+        child: Align(
+          widthFactor: 1,
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ),
       ),
     );
   }
