@@ -47,3 +47,9 @@ app.*.map.json
 # Firebase environment configuration
 /android/app/google-services.json
 /ios/Runner/GoogleService-Info.plist
+
+
+# Keystore
+*.jks
+*.keystore
+key.properties

@@ -13,6 +13,14 @@ class AppConstants {
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);
 
+  // In-app update: checks this GitLab project's latest release (published
+  // by .gitlab-ci.yml on every vX.Y.Z tag) and offers the APK asset as an
+  // update. No auth token needed — the project is public with Releases set
+  // to "Everyone With Access" (Settings > General > Visibility), so both
+  // the Releases API and its APK assets are readable anonymously.
+  static const String gitlabApiBaseUrl = 'https://gitlab.com/api/v4';
+  static const String gitlabProjectPath = 'developerdmc/hatchery/mobile';
+
   // Secure storage keys
   static const String tokenKey = 'auth_token';
   static const String userKey = 'auth_user';

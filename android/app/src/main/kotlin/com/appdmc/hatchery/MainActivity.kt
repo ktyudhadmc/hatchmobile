@@ -1,4 +1,4 @@
-package com.example.hatchmobile
+package com.appdmc.hatchery
 
 import io.flutter.embedding.android.FlutterActivity
 
