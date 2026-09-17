@@ -1,160 +1,160 @@
-# Android build-only pipeline (no Play Store publishing yet).
-#
-# Versioning:
-#   - Stable release:  tag  vMAJOR.MINOR.PATCH            e.g. v1.2.3
-#   - Testing build:   tag  vMAJOR.MINOR.PATCH-rc.N        e.g. v1.2.3-rc.1
-#                       (also accepts -beta.N / -snapshot.N, same rules)
-#   The tag (minus the leading "v") becomes the APK's versionName.
-#   GITHUB_RUN_NUMBER (an auto-incrementing per-workflow counter) becomes the
-#   versionCode, so every build - stable or pre-release - has a strictly
-#   increasing build number as Android requires.
-#
-# Requires the following GitHub Actions secrets (Settings > Secrets and
-# variables > Actions):
-#   - GOOGLE_SERVICES_JSON     base64-encoded per-environment Firebase config
-#   - UPLOAD_KEYSTORE_JKS      base64-encoded release signing keystore
-#   - KEYSTORE_PASSWORD, KEY_PASSWORD, KEY_ALIAS    signing credentials
-#
-# In-app update (lib/features/app_update/) reads this repo's Releases API
-# with no auth — it's public.
+# # Android build-only pipeline (no Play Store publishing yet).
+# #
+# # Versioning:
+# #   - Stable release:  tag  vMAJOR.MINOR.PATCH            e.g. v1.2.3
+# #   - Testing build:   tag  vMAJOR.MINOR.PATCH-rc.N        e.g. v1.2.3-rc.1
+# #                       (also accepts -beta.N / -snapshot.N, same rules)
+# #   The tag (minus the leading "v") becomes the APK's versionName.
+# #   GITHUB_RUN_NUMBER (an auto-incrementing per-workflow counter) becomes the
+# #   versionCode, so every build - stable or pre-release - has a strictly
+# #   increasing build number as Android requires.
+# #
+# # Requires the following GitHub Actions secrets (Settings > Secrets and
+# # variables > Actions):
+# #   - GOOGLE_SERVICES_JSON     base64-encoded per-environment Firebase config
+# #   - UPLOAD_KEYSTORE_JKS      base64-encoded release signing keystore
+# #   - KEYSTORE_PASSWORD, KEY_PASSWORD, KEY_ALIAS    signing credentials
+# #
+# # In-app update (lib/features/app_update/) reads this repo's Releases API
+# # with no auth — it's public.
 
-name: build
+# name: build
 
-on:
-  pull_request:
-  push:
-    branches:
-      - develop
-      - main
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
-      - "v[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+"
-      - "v[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+"
-      - "v[0-9]+.[0-9]+.[0-9]+-snapshot.[0-9]+"
+# on:
+#   pull_request:
+#   push:
+#     branches:
+#       - develop
+#       - main
+#     tags:
+#       - "v[0-9]+.[0-9]+.[0-9]+"
+#       - "v[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+"
+#       - "v[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+"
+#       - "v[0-9]+.[0-9]+.[0-9]+-snapshot.[0-9]+"
 
-# Pin an exact Flutter version for reproducible builds; bump deliberately.
-env:
-  FLUTTER_VERSION: "3.35.5"
+# # Pin an exact Flutter version for reproducible builds; bump deliberately.
+# env:
+#   FLUTTER_VERSION: "3.35.5"
 
-jobs:
-  analyze:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
-      - run: flutter pub get
-      - run: flutter analyze
+# jobs:
+#   analyze:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: subosito/flutter-action@v2
+#         with:
+#           flutter-version: ${{ env.FLUTTER_VERSION }}
+#           cache: true
+#       - run: flutter pub get
+#       - run: flutter analyze
 
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
-      - run: flutter pub get
-      - run: flutter test
+#   test:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: subosito/flutter-action@v2
+#         with:
+#           flutter-version: ${{ env.FLUTTER_VERSION }}
+#           cache: true
+#       - run: flutter pub get
+#       - run: flutter test
 
-  # Ad-hoc APK for a pull request / branch push, not versioned by a tag.
-  # Useful to grab a build for manual testing without cutting a release tag.
-  build-dev:
-    if: github.ref_type != 'tag'
-    needs: [analyze, test]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
-      - run: flutter pub get
+#   # Ad-hoc APK for a pull request / branch push, not versioned by a tag.
+#   # Useful to grab a build for manual testing without cutting a release tag.
+#   build-dev:
+#     if: github.ref_type != 'tag'
+#     needs: [analyze, test]
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: subosito/flutter-action@v2
+#         with:
+#           flutter-version: ${{ env.FLUTTER_VERSION }}
+#           cache: true
+#       - run: flutter pub get
 
-      - name: Set up signing and Firebase config
-        run: |
-          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > android/app/google-services.json
-          echo "${{ secrets.UPLOAD_KEYSTORE_JKS }}" | base64 -d > android/app/upload-keystore.jks
-          cat > android/app/key.properties <<EOF
-          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
-          storeFile=upload-keystore.jks
-          EOF
+#       - name: Set up signing and Firebase config
+#         run: |
+#           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > android/app/google-services.json
+#           echo "${{ secrets.UPLOAD_KEYSTORE_JKS }}" | base64 -d > android/app/upload-keystore.jks
+#           cat > android/app/key.properties <<EOF
+#           storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+#           keyPassword=${{ secrets.KEY_PASSWORD }}
+#           keyAlias=${{ secrets.KEY_ALIAS }}
+#           storeFile=upload-keystore.jks
+#           EOF
 
-      - name: Build APK
-        run: |
-          VERSION="0.0.0-dev"
-          echo "Building $VERSION (build ${{ github.run_number }})"
-          flutter build apk --release --build-name="$VERSION" --build-number="${{ github.run_number }}"
-          mv build/app/outputs/flutter-apk/app-release.apk "app-release-${VERSION}.apk"
+#       - name: Build APK
+#         run: |
+#           VERSION="0.0.0-dev"
+#           echo "Building $VERSION (build ${{ github.run_number }})"
+#           flutter build apk --release --build-name="$VERSION" --build-number="${{ github.run_number }}"
+#           mv build/app/outputs/flutter-apk/app-release.apk "app-release-${VERSION}.apk"
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: hatchmobile-dev
-          path: app-release-*.apk
-          retention-days: 14
+#       - uses: actions/upload-artifact@v4
+#         with:
+#           name: hatchmobile-dev
+#           path: app-release-*.apk
+#           retention-days: 14
 
-  # Tagged build: vX.Y.Z (stable) or vX.Y.Z-rc.N / -beta.N / -snapshot.N (testing).
-  build-tag:
-    if: github.ref_type == 'tag'
-    needs: [analyze, test]
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-      apk_name: ${{ steps.version.outputs.apk_name }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
-      - run: flutter pub get
+#   # Tagged build: vX.Y.Z (stable) or vX.Y.Z-rc.N / -beta.N / -snapshot.N (testing).
+#   build-tag:
+#     if: github.ref_type == 'tag'
+#     needs: [analyze, test]
+#     runs-on: ubuntu-latest
+#     outputs:
+#       version: ${{ steps.version.outputs.version }}
+#       apk_name: ${{ steps.version.outputs.apk_name }}
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: subosito/flutter-action@v2
+#         with:
+#           flutter-version: ${{ env.FLUTTER_VERSION }}
+#           cache: true
+#       - run: flutter pub get
 
-      - name: Set up signing and Firebase config
-        run: |
-          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > android/app/google-services.json
-          echo "${{ secrets.UPLOAD_KEYSTORE_JKS }}" | base64 -d > android/app/upload-keystore.jks
-          cat > android/app/key.properties <<EOF
-          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
-          storeFile=upload-keystore.jks
-          EOF
+#       - name: Set up signing and Firebase config
+#         run: |
+#           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > android/app/google-services.json
+#           echo "${{ secrets.UPLOAD_KEYSTORE_JKS }}" | base64 -d > android/app/upload-keystore.jks
+#           cat > android/app/key.properties <<EOF
+#           storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+#           keyPassword=${{ secrets.KEY_PASSWORD }}
+#           keyAlias=${{ secrets.KEY_ALIAS }}
+#           storeFile=upload-keystore.jks
+#           EOF
 
-      - name: Build APK
-        id: version
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          echo "Building $VERSION (build ${{ github.run_number }})"
-          flutter build apk --release --build-name="$VERSION" --build-number="${{ github.run_number }}"
-          mv build/app/outputs/flutter-apk/app-release.apk "app-release-${VERSION}.apk"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "apk_name=app-release-${VERSION}.apk" >> "$GITHUB_OUTPUT"
+#       - name: Build APK
+#         id: version
+#         run: |
+#           VERSION="${GITHUB_REF_NAME#v}"
+#           echo "Building $VERSION (build ${{ github.run_number }})"
+#           flutter build apk --release --build-name="$VERSION" --build-number="${{ github.run_number }}"
+#           mv build/app/outputs/flutter-apk/app-release.apk "app-release-${VERSION}.apk"
+#           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+#           echo "apk_name=app-release-${VERSION}.apk" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: hatchmobile-${{ steps.version.outputs.version }}
-          path: app-release-*.apk
-          retention-days: 0
+#       - uses: actions/upload-artifact@v4
+#         with:
+#           name: hatchmobile-${{ steps.version.outputs.version }}
+#           path: app-release-*.apk
+#           retention-days: 0
 
-  # Publishes the tagged APK as a GitHub Release asset.
-  release:
-    needs: build-tag
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: hatchmobile-${{ needs.build-tag.outputs.version }}
+#   # Publishes the tagged APK as a GitHub Release asset.
+#   release:
+#     needs: build-tag
+#     runs-on: ubuntu-latest
+#     permissions:
+#       contents: write
+#     steps:
+#       - uses: actions/download-artifact@v4
+#         with:
+#           name: hatchmobile-${{ needs.build-tag.outputs.version }}
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: hatchmobile ${{ github.ref_name }}
-          tag_name: ${{ github.ref_name }}
-          files: ${{ needs.build-tag.outputs.apk_name }}
-          prerelease: ${{ contains(github.ref_name, '-rc.') || contains(github.ref_name, '-beta.') || contains(github.ref_name, '-snapshot.') }}
+#       - name: Create GitHub Release
+#         uses: softprops/action-gh-release@v2
+#         with:
+#           name: hatchmobile ${{ github.ref_name }}
+#           tag_name: ${{ github.ref_name }}
+#           files: ${{ needs.build-tag.outputs.apk_name }}
+#           prerelease: ${{ contains(github.ref_name, '-rc.') || contains(github.ref_name, '-beta.') || contains(github.ref_name, '-snapshot.') }}
