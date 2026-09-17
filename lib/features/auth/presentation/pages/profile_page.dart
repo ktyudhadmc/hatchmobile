@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/dialog_helper.dart';
 import '../../../../core/utils/general_formatter.dart';
+import '../../../../features/app_update/presentation/widgets/app_update_banner.dart';
+import '../../../../features/app_update/presentation/widgets/app_version_tag.dart';
 import '../../../../shared/widgets/bottom_bar_navigation.dart';
 import '../../../../shared/widgets/refreshable_view.dart';
 import '../providers/auth_provider.dart';
@@ -40,6 +42,7 @@ class ProfilePage extends ConsumerWidget {
           padding: const EdgeInsets.all(20),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
+            const AppUpdateBanner(),
             _buildProfileCard(user?.name ?? '-', user?.role.name ?? '-'),
             const SizedBox(height: 24),
             _buildMenuItem(
@@ -47,6 +50,8 @@ class ProfilePage extends ConsumerWidget {
               label: 'Sign Out',
               onTap: () => _logout(context, ref),
             ),
+            const SizedBox(height: 32),
+            const AppVersionTag(),
           ],
         ),
       ),

@@ -13,6 +13,9 @@
 # Firebase config) uploaded as a GitLab Secure File. Set it in
 # Settings > CI/CD > Secure Files, then the download-secure-files tool
 # below fetches it into .secure_files/ during the build job.
+#
+# In-app update (lib/features/app_update/) reads this project's Releases API
+# with no auth — it's public with Releases set to "Everyone With Access".
 
 stages:
   - analyze

@@ -37,6 +37,10 @@ dependencies:
   device_info_plus: ^12.3.0
   package_info_plus: ^9.0.0
 
+  # In-app update: download the release APK and hand it to the OS installer.
+  path_provider: ^2.1.5
+  open_filex: ^4.7.0
+
   # Utilities
   intl: ^0.20.2
   equatable: ^2.0.7
