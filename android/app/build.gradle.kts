@@ -20,8 +20,9 @@ plugins {
 android {
     namespace = "com.appdmc.hatchery"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
-
+    // ndkVersion = flutter.ndkVersion
+    ndkVersion = project.properties["android.ndkVersion"] as String
+    
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
