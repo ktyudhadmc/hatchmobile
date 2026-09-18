@@ -43,7 +43,11 @@ class ProfilePage extends ConsumerWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             const AppUpdateBanner(),
-            _buildProfileCard(user?.name ?? '-', user?.role.name ?? '-'),
+            _buildProfileCard(
+              user?.name ?? '-',
+              user?.role.name ?? '-',
+              user?.hatchery.name ?? '-',
+            ),
             const SizedBox(height: 24),
             _buildMenuItem(
               icon: Icons.exit_to_app_rounded,
@@ -61,7 +65,7 @@ class ProfilePage extends ConsumerWidget {
     );
   }
 
-  Widget _buildProfileCard(String name, String role) {
+  Widget _buildProfileCard(String name, String role, String hatcheryName) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -95,25 +99,51 @@ class ProfilePage extends ConsumerWidget {
                     fontSize: 16,
                   ),
                 ),
-
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                    border: BoxBorder.all(color: AppTheme.primaryColor),
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: Text(
-                    role.toUpperCase(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    _buildBadge(
+                      role.toUpperCase(),
                       color: AppTheme.primaryColor,
-                      fontSize: 10,
                     ),
-                  ),
+                    _buildBadge(
+                      hatcheryName.toUpperCase(),
+                      color: const Color(0xff2E7D32),
+                      icon: Icons.factory_outlined,
+                    ),
+                  ],
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBadge(String text, {required Color color, IconData? icon}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        border: Border.all(color: color),
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 10, color: color),
+            const SizedBox(width: 4),
+          ],
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: color, fontSize: 10),
             ),
           ),
         ],
