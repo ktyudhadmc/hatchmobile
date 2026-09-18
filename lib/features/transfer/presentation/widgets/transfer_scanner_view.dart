@@ -146,9 +146,10 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
           children: [
             ScannerView(
               controller: _controller,
-              guideOffsetY: constraints.maxHeight * 0.18,
               onDetect: _onDetect,
               hint: _scanState.lookupCode,
+              instructionText:
+                  'Position the barcode within the frame provided',
               showTorchButton: widget.showTorchButton,
             ),
             if (_scanState.isLookingUp) const ScannerLoadingOverlay(),

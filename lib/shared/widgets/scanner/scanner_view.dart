@@ -23,6 +23,10 @@ class ScannerView extends StatefulWidget {
   /// Dipakai buat nampilin raw value QR yang barusan terdeteksi.
   final String? hint;
 
+  /// Instruction shown centered just above the guide box (e.g. "Position
+  /// the barcode within the frame provided"). Null/empty hides it.
+  final String? instructionText;
+
   /// Ukuran kotak panduan visual. Murni dekoratif — deteksi tetap jalan di
   /// seluruh frame kamera, bukan cuma di dalam kotak ini.
   final double guideBoxSize;
@@ -54,6 +58,7 @@ class ScannerView extends StatefulWidget {
     required this.onDetect,
     this.isBusy = false,
     this.hint,
+    this.instructionText,
     this.guideBoxSize = defaultGuideBoxSize,
     this.guideOffsetY = 0,
     this.controller,
@@ -248,6 +253,22 @@ class _ScannerViewState extends State<ScannerView> {
                   ),
                 ),
               ),
+              if (widget.instructionText != null &&
+                  widget.instructionText!.isNotEmpty)
+                Positioned(
+                  left: 24,
+                  right: 24,
+                  top: guideRect.top - 44,
+                  child: Text(
+                    widget.instructionText!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
               if (widget.hint != null && widget.hint!.isNotEmpty)
                 Positioned(
                   left: guideRect.left + _HintBadge.horizontalInset,
@@ -288,21 +309,15 @@ class TorchButton extends StatelessWidget {
       valueListenable: controller,
       builder: (context, state, _) {
         final isOn = state.torchState == TorchState.on;
-        return Material(
-          color: isOn
-              ? Colors.amber.withValues(alpha: 0.9)
-              : Colors.black.withValues(alpha: 0.5),
-          shape: const CircleBorder(),
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: () => controller.toggleTorch(),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Icon(
-                isOn ? Icons.flash_on : Icons.flash_off,
-                color: isOn ? Colors.black : Colors.white,
-                size: 22,
-              ),
+        return InkWell(
+          customBorder: const CircleBorder(),
+          onTap: () => controller.toggleTorch(),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Icon(
+              isOn ? Icons.flash_on : Icons.flash_off,
+              color: isOn ? Colors.amber : Colors.white,
+              size: 22,
             ),
           ),
         );
@@ -384,19 +399,19 @@ class _HintBadge extends StatelessWidget {
   }
 }
 
-/// Dims everything outside [guideRect] and draws corner brackets around it,
+/// Dims everything outside [guideRect] and draws a rounded border around it,
 /// like a typical QR-scanner viewfinder — purely a visual aid, doesn't
-/// affect what area actually gets scanned. Brackets turn green briefly when
-/// [isDetected] is true, giving instant confirmation of a successful scan.
+/// affect what area actually gets scanned. The border turns green briefly
+/// when [isDetected] is true, giving instant confirmation of a successful
+/// scan.
 class _ScanGuidePainter extends CustomPainter {
   const _ScanGuidePainter({required this.guideRect, required this.isDetected});
 
   final Rect guideRect;
   final bool isDetected;
 
-  static const _cornerLength = 28.0;
-  static const _cornerRadius = 0.0;
-  static const _strokeWidth = 4.0;
+  static const _cornerRadius = 20.0;
+  static const _strokeWidth = 3.0;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -417,42 +432,14 @@ class _ScanGuidePainter extends CustomPainter {
       Paint()..color = Colors.black.withValues(alpha: 0.55),
     );
 
-    final cornerPaint = Paint()
+    final borderPaint = Paint()
       ..color = isDetected ? Colors.greenAccent : Colors.white
       ..strokeWidth = _strokeWidth
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+      ..style = PaintingStyle.stroke;
 
-    void drawCorner(Offset a, Offset b, Offset c) {
-      canvas.drawPath(
-        Path()
-          ..moveTo(a.dx, a.dy)
-          ..lineTo(b.dx, b.dy)
-          ..lineTo(c.dx, c.dy),
-        cornerPaint,
-      );
-    }
-
-    final r = guideRect;
-    drawCorner(
-      Offset(r.left, r.top + _cornerLength),
-      Offset(r.left, r.top),
-      Offset(r.left + _cornerLength, r.top),
-    );
-    drawCorner(
-      Offset(r.right - _cornerLength, r.top),
-      Offset(r.right, r.top),
-      Offset(r.right, r.top + _cornerLength),
-    );
-    drawCorner(
-      Offset(r.right, r.bottom - _cornerLength),
-      Offset(r.right, r.bottom),
-      Offset(r.right - _cornerLength, r.bottom),
-    );
-    drawCorner(
-      Offset(r.left + _cornerLength, r.bottom),
-      Offset(r.left, r.bottom),
-      Offset(r.left, r.bottom - _cornerLength),
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(guideRect, const Radius.circular(_cornerRadius)),
+      borderPaint,
     );
   }
 

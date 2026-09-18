@@ -6,6 +6,7 @@ import '../../features/app_update/presentation/pages/settings_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/profile_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
+import '../../features/auth/presentation/pages/welcome_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/home/presentation/pages/history_page.dart';
 import '../../features/transfer/presentation/pages/scan_page.dart';
@@ -35,6 +36,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoading = authState.isLoading;
       final isAuthenticated = authState.valueOrNull != null;
       final isSplash = state.matchedLocation == '/splash';
+      final isWelcome = state.matchedLocation == '/welcome';
       final isLoggingIn = state.matchedLocation == '/login';
 
       // While actively submitting on /login, stay put — the page shows its
@@ -42,8 +44,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       // state (session restore on app start, reached from anywhere else)
       // should bounce to /splash.
       if (isLoading) return (isSplash || isLoggingIn) ? null : '/splash';
-      if (!isAuthenticated) return isLoggingIn ? null : '/login';
-      if (isLoggingIn || isSplash) return '/scan';
+      if (!isAuthenticated) {
+        return (isWelcome || isLoggingIn) ? null : '/welcome';
+      }
+      if (isLoggingIn || isWelcome || isSplash) return '/scan';
       return null;
     },
     routes: [
@@ -51,6 +55,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/splash',
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: SplashPage()),
+      ),
+      GoRoute(
+        path: '/welcome',
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: WelcomePage()),
       ),
       GoRoute(
         path: '/login',

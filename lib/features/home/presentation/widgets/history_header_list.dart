@@ -7,6 +7,9 @@ import '../../../transfer/domain/entities/transfer_history/entities.dart';
 import '../../../transfer/presentation/providers/transfer_history_provider.dart';
 import 'history_detail_sheet.dart';
 
+/// Sliver form of the history list, meant to sit inside the [CustomScrollView]
+/// that [RefreshableView] builds — so pulling down drags this content with
+/// it instead of a Material spinner floating over a separate scrollable.
 class HistoryHeaderList extends ConsumerWidget {
   const HistoryHeaderList({super.key});
 
@@ -16,13 +19,15 @@ class HistoryHeaderList extends ConsumerWidget {
     final headers = headersState.valueOrNull ?? const [];
 
     if (headersState.isLoading) {
-      return const _FillScrollView(
+      return const SliverFillRemaining(
+        hasScrollBody: false,
         child: Center(child: CircularProgressIndicator()),
       );
     }
 
     if (headersState.hasError) {
-      return const _FillScrollView(
+      return const SliverFillRemaining(
+        hasScrollBody: false,
         child: _Placeholder(
           message: 'Error loading details',
           icon: Icons.error_outline,
@@ -31,7 +36,8 @@ class HistoryHeaderList extends ConsumerWidget {
     }
 
     if (headers.isEmpty) {
-      return const _FillScrollView(
+      return const SliverFillRemaining(
+        hasScrollBody: false,
         child: _Placeholder(
           message: 'This transfer is empty',
           icon: Icons.history_rounded,
@@ -39,33 +45,16 @@ class HistoryHeaderList extends ConsumerWidget {
       );
     }
 
-    return ListView.separated(
+    return SliverPadding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      physics: const AlwaysScrollableScrollPhysics(),
-      itemCount: headers.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 8),
-      itemBuilder: (context, index) => _HeaderCard(
-        header: headers[index],
-        onTap: () => showHistoryDetailSheet(context, ref, headers[index]),
+      sliver: SliverList.separated(
+        itemCount: headers.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 8),
+        itemBuilder: (context, index) => _HeaderCard(
+          header: headers[index],
+          onTap: () => showHistoryDetailSheet(context, ref, headers[index]),
+        ),
       ),
-    );
-  }
-}
-
-class _FillScrollView extends StatelessWidget {
-  const _FillScrollView({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [SizedBox(height: constraints.maxHeight, child: child)],
-        );
-      },
     );
   }
 }

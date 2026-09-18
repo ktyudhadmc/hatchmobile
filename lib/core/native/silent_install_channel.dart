@@ -26,4 +26,22 @@ class SilentInstallChannel {
   static Future<void> silentInstall(String apkPath) {
     return _channel.invokeMethod('silentInstall', {'apkPath': apkPath});
   }
+
+  /// Whether the OS will let this app hand an APK to the installer at all
+  /// (Android 8+ gates that per-app, off by default for sideloaded apps).
+  /// When false, [OpenFilex.open]-based installs silently fail — the user
+  /// needs to flip this on first, via [openInstallUpdatesSettings].
+  static Future<bool> canInstallUpdates() async {
+    try {
+      return await _channel.invokeMethod<bool>('canInstallUpdates') ?? false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  /// Opens the system screen where the user grants that permission for
+  /// this app.
+  static Future<void> openInstallUpdatesSettings() {
+    return _channel.invokeMethod('openInstallUpdatesSettings');
+  }
 }

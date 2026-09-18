@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 class ScannerLoadingOverlay extends StatelessWidget {
   const ScannerLoadingOverlay({
     super.key,
-    this.message = 'Mencari basket...',
+    this.message = 'Looking up basket...',
   });
 
   final String message;

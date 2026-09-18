@@ -39,7 +39,7 @@ class HistoryDetailView extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 'List of Basket',
-                style: Theme.of(context).textTheme.titleMedium,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
             ],
           ),
@@ -125,20 +125,25 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryColor.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             header.transferCode,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           _infoRow('Transfer date', DateFormatter.format(header.transferDate)),
           _infoRow('Farm', header.branch),
           _infoRow('Shipped', (header.sentbasketCount ?? 0).toString()),
-          _infoRow('Received', (header.sentbasketCount ?? 0).toString()),
+          _infoRow('Received', (header.receivedBasketCount ?? 0).toString()),
         ],
       ),
     );
@@ -171,13 +176,15 @@ class _BasketCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isReceived = basket.receivedAt != null;
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: const Color(0xffF5F8FA)),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,44 +194,81 @@ class _BasketCard extends StatelessWidget {
             children: [
               Text(
                 basket.basketCode,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
-              Text(
-                basket.receivedAt != null
+              _StatusChip(
+                label: isReceived
                     ? DateFormatter.format(basket.receivedAt!)
-                    : 'Belum diterima',
-                style: TextStyle(
-                  color: basket.receivedAt != null
-                      ? AppTheme.successColor
-                      : AppTheme.warningColor,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
+                    : 'Not received yet',
+                color: isReceived ? AppTheme.successColor : AppTheme.warningColor,
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          ...basket.grades.map(_buildGradeRow),
+          const SizedBox(height: 6),
+          ...basket.grades.map(
+            (grade) => Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: _buildGradeRow(grade),
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildGradeRow(TransferGrade grade) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
+    return Row(
+      children: [
+        Container(
+          width: 26,
+          height: 26,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
             grade.grade,
-            style: const TextStyle(color: Color(0xFF7B7B7B), fontSize: 12),
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
+              color: AppTheme.primaryColor,
+            ),
           ),
-          Text(
-            'Shipped ${grade.quantity} · Received ${grade.receivedQuantity ?? 0}',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'Henhouse ${grade.henhouse ?? '-'}',
+            style: const TextStyle(color: Color(0xFF7B7B7B), fontSize: 11),
           ),
-        ],
+        ),
+        Text(
+          'Shipped ${grade.quantity} · Received ${grade.receivedQuantity ?? 0}',
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700),
       ),
     );
   }

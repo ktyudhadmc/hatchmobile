@@ -27,7 +27,7 @@ class HistoryPage extends ConsumerWidget {
             child: RefreshableView(
               onRefresh: () =>
                   ref.read(historyHeadersProvider.notifier).fetch(),
-              child: const HistoryHeaderList(),
+              slivers: const [HistoryHeaderList()],
             ),
           ),
         ],

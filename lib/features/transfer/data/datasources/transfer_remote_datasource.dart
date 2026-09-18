@@ -41,7 +41,7 @@ class TransferRemoteDatasource {
 
     if (data['status'] != true || basketData is! Map<String, dynamic>) {
       throw NotFoundException(
-        (data['message'] as String?) ?? 'Kode basket tidak ditemukan',
+        (data['message'] as String?) ?? 'Basket code not found',
       );
     }
 
@@ -120,7 +120,7 @@ class TransferRemoteDatasource {
 
     if (data['status'] != 'success') {
       throw NotFoundException(
-        (data['message'] as String?) ?? 'Riwayat tidak ditemukan',
+        (data['message'] as String?) ?? 'History not found',
       );
     }
     return TransferHistoryDetailModel.fromJsonList(

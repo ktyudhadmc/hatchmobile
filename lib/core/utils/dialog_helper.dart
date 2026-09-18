@@ -34,8 +34,8 @@ class DialogHelper {
     BuildContext context, {
     required String title,
     required String message,
-    String confirmLabel = 'Ya',
-    String cancelLabel = 'Batal',
+    String confirmLabel = 'Yes',
+    String cancelLabel = 'Cancel',
     bool isDanger = false,
   }) async {
     // final fillColor = isDanger ? AppTheme.errorColor : AppTheme.primaryColor;
@@ -98,8 +98,8 @@ class DialogHelper {
     BuildContext context, {
     required String title,
     required String message,
-    String confirmLabel = 'Ya',
-    String cancelLabel = 'Tidak',
+    String confirmLabel = 'Yes',
+    String cancelLabel = 'No',
     bool isDanger = false,
   }) async {
     final fillColor = AppTheme.primaryColor;
@@ -299,7 +299,7 @@ class DialogHelper {
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    child: const Text('PILIH'),
+                    child: const Text('SELECT'),
                   ),
                 ),
               ],

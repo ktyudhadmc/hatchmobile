@@ -7,7 +7,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageInstaller
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -34,6 +36,11 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "isDeviceOwner" -> result.success(isDeviceOwner())
+                    "canInstallUpdates" -> result.success(canInstallUpdates())
+                    "openInstallUpdatesSettings" -> {
+                        openInstallUpdatesSettings()
+                        result.success(null)
+                    }
                     "silentInstall" -> {
                         val apkPath = call.argument<String>("apkPath")
                         if (apkPath.isNullOrEmpty()) {
@@ -50,6 +57,30 @@ class MainActivity : FlutterActivity() {
     private fun isDeviceOwner(): Boolean {
         val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         return dpm.isDeviceOwnerApp(packageName)
+    }
+
+    /**
+     * Whether the OS will let this app install an APK without routing
+     * through Settings first. Below Android 8 (O) every app could install
+     * packages once [REQUEST_INSTALL_PACKAGES] was granted at install time,
+     * so this is always true there; from O onward it's a separate,
+     * per-app toggle the user has to flip themselves.
+     */
+    private fun canInstallUpdates(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            packageManager.canRequestPackageInstalls()
+        } else {
+            true
+        }
+    }
+
+    /** Opens the system screen where the user flips that per-app toggle on. */
+    private fun openInstallUpdatesSettings() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+            data = Uri.parse("package:$packageName")
+        }
+        startActivity(intent)
     }
 
     private fun silentInstall(apkPath: String, result: MethodChannel.Result) {

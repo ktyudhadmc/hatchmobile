@@ -1,27 +1,54 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
 
 /// Pull-to-refresh wrapper with consistent app styling, so every page wires
-/// it up the same way instead of configuring [RefreshIndicator] by hand.
+/// it up the same way instead of configuring the refresh control by hand.
 ///
-/// [child] must be (or contain) a [Scrollable] — that's what actually
-/// detects the pull gesture. For loading/empty/error states with nothing to
-/// naturally scroll, wrap them in a [ListView] with
-/// [AlwaysScrollableScrollPhysics] rather than a bare [Center], otherwise
-/// the pull gesture has nothing to attach to and silently does nothing.
+/// Uses [CupertinoSliverRefreshControl] instead of Material's
+/// [RefreshIndicator] so the page's own content is what visibly drags down
+/// as the user pulls (revealing the spinner above it), rather than a
+/// spinner floating over content that stays put.
+///
+/// [slivers] are the page's content, already in sliver form (e.g.
+/// [SliverList], [SliverToBoxAdapter], [SliverFillRemaining]) — this widget
+/// just prepends the refresh control and wraps everything in the
+/// [CustomScrollView] that both need to share.
 class RefreshableView extends StatelessWidget {
-  const RefreshableView({super.key, required this.onRefresh, required this.child});
+  const RefreshableView({
+    super.key,
+    required this.onRefresh,
+    required this.slivers,
+  });
 
   final Future<void> Function() onRefresh;
-  final Widget child;
+  final List<Widget> slivers;
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: onRefresh,
-      color: AppTheme.primaryColor,
-      child: child,
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        CupertinoSliverRefreshControl(
+          onRefresh: onRefresh,
+          builder: (
+            context,
+            refreshState,
+            pulledExtent,
+            refreshTriggerPullDistance,
+            refreshIndicatorExtent,
+          ) {
+            return Center(
+              child: CupertinoActivityIndicator(
+                color: AppTheme.primaryColor,
+                radius: 12,
+              ),
+            );
+          },
+        ),
+        ...slivers,
+      ],
     );
   }
 }

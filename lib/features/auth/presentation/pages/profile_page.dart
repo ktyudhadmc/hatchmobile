@@ -36,28 +36,31 @@ class ProfilePage extends ConsumerWidget {
       appBar: AppBar(title: const Text('Profile')),
       body: RefreshableView(
         onRefresh: () => ref.read(authProvider.notifier).refreshCurrentUser(),
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            _buildProfileCard(
-              user?.name ?? '-',
-              user?.role.name ?? '-',
-              user?.hatchery.name ?? '-',
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.all(20),
+            sliver: SliverList.list(
+              children: [
+                _buildProfileCard(
+                  user?.name ?? '-',
+                  user?.role.name ?? '-',
+                  user?.hatchery.name ?? '-',
+                ),
+                const SizedBox(height: 24),
+                _buildMenuItem(
+                  icon: Icons.settings_outlined,
+                  label: 'Settings',
+                  onTap: () => context.push('/settings'),
+                ),
+                _buildMenuItem(
+                  icon: Icons.exit_to_app_rounded,
+                  label: 'Sign Out',
+                  onTap: () => _logout(context, ref),
+                ),
+              ],
             ),
-            const SizedBox(height: 24),
-            _buildMenuItem(
-              icon: Icons.settings_outlined,
-              label: 'Settings',
-              onTap: () => context.push('/settings'),
-            ),
-            _buildMenuItem(
-              icon: Icons.exit_to_app_rounded,
-              label: 'Sign Out',
-              onTap: () => _logout(context, ref),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
       floatingActionButton: const ScanFab(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,

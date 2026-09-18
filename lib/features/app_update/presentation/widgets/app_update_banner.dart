@@ -20,6 +20,7 @@ class AppUpdateBanner extends ConsumerWidget {
     final hasFailed = checkState.hasError && !isChecking;
     final updateInfo = checkState.valueOrNull;
     final hasUpdate = updateInfo != null;
+    final currentVersion = ref.watch(currentAppVersionProvider).valueOrNull;
 
     final downloadState = ref.watch(appUpdateDownloadProvider);
 
@@ -35,8 +36,8 @@ class AppUpdateBanner extends ConsumerWidget {
       title = 'Update available';
       subtitle = 'Version ${updateInfo.version} is ready to download';
     } else {
-      title = 'You\'re up to date';
-      subtitle = 'No new updates right now';
+      title = currentVersion != null ? 'v$currentVersion' : 'Up to date';
+      subtitle = 'You\'re on the latest version';
     }
 
     return Container(

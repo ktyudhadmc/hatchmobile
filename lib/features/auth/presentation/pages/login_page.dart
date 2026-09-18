@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/errors/app_exception.dart';
@@ -73,74 +74,152 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    const greeting = AppConstants.appName;
-    const welcomeGreeting = 'Please enter your credentials to continue';
-
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isSubmitting = ref.watch(authProvider).isLoading;
 
     return Scaffold(
-      appBar: AppBar(elevation: 0, scrolledUnderElevation: 0),
-      backgroundColor: Colors.white,
-      body: Padding(
-        padding: const EdgeInsets.all(20),
+      backgroundColor: AppTheme.primaryColor,
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        bottom: false,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  greeting,
-                  style: TextStyle(
-                    fontSize: screenHeight * 0.03,
-                    fontWeight: FontWeight.bold,
+            // Solid-color header — logo/app name, in place of an illustration.
+            Expanded(
+              flex: 4,
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: 4,
+                    left: 4,
+                    child: IconButton(
+                      onPressed: () => context.canPop()
+                          ? context.pop()
+                          : context.go('/welcome'),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
                   ),
-                ),
-                SizedBox(height: screenHeight * 0.005),
-                Text(
-                  welcomeGreeting,
-                  style: TextStyle(
-                    fontSize: screenHeight * 0.015,
-                    fontWeight: FontWeight.w400,
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.factory_outlined,
+                            color: Colors.white,
+                            size: 36,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          AppConstants.appName,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Login to continue',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                ],
+              ),
+            ),
+            // Bottom "sheet" — a rounded-top white card holding the form,
+            // visually continuing the flow from a modal bottom sheet without
+            // actually being one (it's the page body, not an overlay).
+            Expanded(
+              flex: 6,
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
                 ),
-                SizedBox(height: screenHeight * 0.02),
-                Form(
-                  key: _formKey,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    24,
+                    12,
+                    24,
+                    24 + MediaQuery.of(context).viewInsets.bottom,
+                  ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      FormTextField(
-                        label: 'Username',
-                        isRequired: true,
-                        controller: _usernameController,
-                        keyboardType: TextInputType.emailAddress,
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
                       ),
-                      SizedBox(height: screenHeight * 0.01),
-                      FormTextField(
-                        label: 'Password',
-                        isRequired: true,
-                        isPassword: true,
-                        controller: _passwordController,
-                        keyboardType: TextInputType.visiblePassword,
+                      const Text(
+                        'Login',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Please enter your credentials to continue',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF7B7B7B),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            FormTextField(
+                              label: 'Username',
+                              isRequired: true,
+                              controller: _usernameController,
+                              keyboardType: TextInputType.emailAddress,
+                            ),
+                            const SizedBox(height: 16),
+                            FormTextField(
+                              label: 'Password',
+                              isRequired: true,
+                              isPassword: true,
+                              controller: _passwordController,
+                              keyboardType: TextInputType.visiblePassword,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      _buildSubmitButton('LOGIN', screenWidth, isSubmitting),
+                      SizedBox(height: screenHeight * 0.02),
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        minimum: EdgeInsets.symmetric(
-          horizontal: 24,
-          vertical: screenHeight * 0.08,
-        ),
-        child: _buildSubmitButton('MASUK', screenWidth, isSubmitting),
       ),
     );
   }
