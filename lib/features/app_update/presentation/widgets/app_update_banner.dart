@@ -24,6 +24,7 @@ class AppUpdateBanner extends ConsumerWidget {
     final updateInfo = checkState.valueOrNull;
     final hasUpdate = updateInfo != null;
 
+    final currentVersion = ref.watch(currentAppVersionProvider).valueOrNull;
     final downloadState = ref.watch(appUpdateDownloadProvider);
 
     final String title;
@@ -64,56 +65,72 @@ class AppUpdateBanner extends ConsumerWidget {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              hasFailed
-                  ? Icons.error_outline_rounded
-                  : hasUpdate
-                  ? Icons.system_update_alt_rounded
-                  : Icons.check_circle_outline_rounded,
-              color: Colors.white,
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.85),
-                    fontSize: 12,
-                  ),
+                child: Icon(
+                  hasFailed
+                      ? Icons.error_outline_rounded
+                      : hasUpdate
+                      ? Icons.system_update_alt_rounded
+                      : Icons.check_circle_outline_rounded,
+                  color: Colors.white,
+                  size: 22,
                 ),
-              ],
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.85),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              _ActionButton(
+                info: updateInfo,
+                state: downloadState,
+                isChecking: isChecking,
+                hasFailed: hasFailed,
+              ),
+            ],
+          ),
+          if (currentVersion != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Versi terpasang: v$currentVersion',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          _ActionButton(
-            info: updateInfo,
-            state: downloadState,
-            isChecking: isChecking,
-            hasFailed: hasFailed,
-          ),
+          ],
         ],
       ),
     );

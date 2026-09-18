@@ -6,7 +6,6 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/dialog_helper.dart';
 import '../../../../core/utils/general_formatter.dart';
 import '../../../../features/app_update/presentation/widgets/app_update_banner.dart';
-import '../../../../features/app_update/presentation/widgets/app_version_tag.dart';
 import '../../../../shared/widgets/bottom_bar_navigation.dart';
 import '../../../../shared/widgets/refreshable_view.dart';
 import '../providers/auth_provider.dart';
@@ -54,8 +53,6 @@ class ProfilePage extends ConsumerWidget {
               label: 'Sign Out',
               onTap: () => _logout(context, ref),
             ),
-            const SizedBox(height: 32),
-            const AppVersionTag(),
           ],
         ),
       ),
