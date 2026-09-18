@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-/// A newer release found on GitLab, ready to offer the user.
+/// A newer release found on GitHub or GitLab (see
+/// [AppConstants.updateSource]), ready to offer the user.
 class AppUpdateInfo extends Equatable {
   const AppUpdateInfo({required this.version, required this.apkUrl});
 

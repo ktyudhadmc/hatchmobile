@@ -1,3 +1,6 @@
+/// Which host the in-app update feature reads Releases from.
+enum UpdateSource { github, gitlab }
+
 class AppConstants {
   AppConstants._();
 
@@ -13,11 +16,17 @@ class AppConstants {
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);
 
-  // In-app update: checks this GitLab project's latest release (published
-  // by .gitlab-ci.yml on every vX.Y.Z tag) and offers the APK asset as an
-  // update. No auth token needed — the project is public with Releases set
-  // to "Everyone With Access" (Settings > General > Visibility), so both
-  // the Releases API and its APK assets are readable anonymously.
+  // In-app update: checks the chosen host's latest release (published on
+  // every vX.Y.Z tag) and offers the APK asset as an update. No auth token
+  // needed for either host — both projects are public, so their Releases
+  // API and APK assets are readable anonymously.
+  //
+  // Toggle this to switch which host the update check reads from.
+  static const UpdateSource updateSource = UpdateSource.github;
+
+  static const String githubApiBaseUrl = 'https://api.github.com';
+  static const String githubRepoPath = 'ktyudhadmc/hatchmobile';
+
   static const String gitlabApiBaseUrl = 'https://gitlab.com/api/v4';
   static const String gitlabProjectPath = 'developerdmc/hatchery/mobile';
 

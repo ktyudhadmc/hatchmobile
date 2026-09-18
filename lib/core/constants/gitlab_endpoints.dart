@@ -1,7 +1,8 @@
 import 'app_constants.dart';
 
 /// Endpoints on GitLab's own API (gitlab.com), not the app backend — used by
-/// the in-app update feature to read this project's latest tagged release.
+/// the in-app update feature to read this project's latest tagged release
+/// when [AppConstants.updateSource] is [UpdateSource.gitlab].
 class GitlabEndpoints {
   GitlabEndpoints._();
 

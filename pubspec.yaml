@@ -3,7 +3,7 @@ description: "Hatchery Mobile"
 publish_to: "none"
 # Local/dev version only. Released builds get their versionName/versionCode
 # from the git tag via `flutter build --build-name/--build-number` in CI
-# (see .gitlab-ci.yml), which overrides this value — bump it whenever, it
+# (see .github/workflows/build.yml), which overrides this value — bump it whenever, it
 # has no effect on what ships.
 version: 0.1.0
 
