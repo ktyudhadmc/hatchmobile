@@ -1,6 +1,10 @@
 // core/widgets/scanner/scanner_view.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 
 class ScannerView extends StatefulWidget {
   /// Default of [guideBoxSize] — exposed so callers positioning something
@@ -31,6 +35,20 @@ class ScannerView extends StatefulWidget {
   /// Kalau tidak diisi, widget buat sendiri dan dispose sendiri.
   final MobileScannerController? controller;
 
+  /// Kalau true, tampilkan tombol torch manual di pojok kanan bawah guide box.
+  final bool showTorchButton;
+
+  /// Kalau true, torch otomatis dinyalakan setelah [autoTorchDelay] tanpa
+  /// deteksi barcode sama sekali (indikasi kondisi gelap).
+  final bool enableAutoTorch;
+
+  /// Durasi tanpa deteksi sebelum torch otomatis dinyalakan.
+  final Duration autoTorchDelay;
+
+  /// Kalau true, device yang terlalu miring akan menampilkan peringatan
+  /// "Tegakkan kamera" lewat accelerometer.
+  final bool enableTiltWarning;
+
   const ScannerView({
     super.key,
     required this.onDetect,
@@ -39,6 +57,10 @@ class ScannerView extends StatefulWidget {
     this.guideBoxSize = defaultGuideBoxSize,
     this.guideOffsetY = 0,
     this.controller,
+    this.showTorchButton = true,
+    this.enableAutoTorch = true,
+    this.autoTorchDelay = const Duration(seconds: 4),
+    this.enableTiltWarning = true,
   });
 
   @override
@@ -54,6 +76,28 @@ class _ScannerViewState extends State<ScannerView> {
   // it instead of jumping/resetting every frame.
   double _zoomAtGestureStart = 0;
 
+  // Ditandai true sesaat setelah deteksi berhasil, dipakai buat kasih
+  // feedback visual instan (border guide box jadi hijau) sebelum caller
+  // sempat bereaksi (mis. pindah halaman).
+  bool _justDetected = false;
+  Timer? _detectedFlashTimer;
+
+  // Auto-torch: hitung berapa lama sejak terakhir kali tidak ada deteksi
+  // sukses, nyalakan torch otomatis kalau kelamaan (indikasi gelap).
+  Timer? _autoTorchTimer;
+  bool _autoTorchTriggered = false;
+
+  // Adaptive sensitivity: kalau berkali-kali gagal detect, zoom out sedikit
+  // supaya area tangkap lebih luas (kompensasi jarak/angle yang meleset).
+  Timer? _sensitivityTimer;
+  int _failCount = 0;
+  static const _failThreshold = 10;
+  static const _sensitivityCheckInterval = Duration(seconds: 1);
+
+  // Tilt detection via accelerometer.
+  StreamSubscription<AccelerometerEvent>? _accelSub;
+  bool _isTilted = false;
+
   @override
   void initState() {
     super.initState();
@@ -67,19 +111,92 @@ class _ScannerViewState extends State<ScannerView> {
           autoStart: true,
           autoZoom: true,
         );
+
+    if (widget.enableAutoTorch) _startAutoTorchTimer();
+    _startSensitivityTimer();
+    if (widget.enableTiltWarning) _startTiltDetection();
   }
 
   void _onDetect(BarcodeCapture capture) {
-    if (widget.isBusy || capture.barcodes.isEmpty) return;
+    if (widget.isBusy || capture.barcodes.isEmpty) {
+      _failCount++;
+      return;
+    }
 
     final code = capture.barcodes.first.rawValue;
-    if (code == null || code.isEmpty) return;
+    if (code == null || code.isEmpty) {
+      _failCount++;
+      return;
+    }
+
+    _failCount = 0;
+    _flashDetected();
+    HapticFeedback.mediumImpact();
+    _cancelAutoTorchTimer();
 
     widget.onDetect(code);
   }
 
+  void _flashDetected() {
+    setState(() => _justDetected = true);
+    _detectedFlashTimer?.cancel();
+    _detectedFlashTimer = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) setState(() => _justDetected = false);
+    });
+  }
+
+  // ─── Auto torch ────────────────────────────────────────────────────────
+
+  void _startAutoTorchTimer() {
+    _autoTorchTimer?.cancel();
+    _autoTorchTimer = Timer(widget.autoTorchDelay, () {
+      if (!mounted || _autoTorchTriggered) return;
+      _autoTorchTriggered = true;
+      _controller.toggleTorch();
+    });
+  }
+
+  void _cancelAutoTorchTimer() {
+    _autoTorchTimer?.cancel();
+  }
+
+  // ─── Adaptive sensitivity ──────────────────────────────────────────────
+
+  void _startSensitivityTimer() {
+    _sensitivityTimer?.cancel();
+    _sensitivityTimer = Timer.periodic(_sensitivityCheckInterval, (_) {
+      if (_failCount > _failThreshold) {
+        _failCount = 0;
+        _widenDetectionArea();
+      }
+    });
+  }
+
+  void _widenDetectionArea() {
+    final currentZoom = _controller.value.zoomScale;
+    if (currentZoom <= 0) return;
+    _controller.setZoomScale((currentZoom - 0.1).clamp(0.0, 1.0));
+  }
+
+  // ─── Tilt detection ────────────────────────────────────────────────────
+
+  void _startTiltDetection() {
+    _accelSub = accelerometerEventStream().listen((event) {
+      // z mendekati 0 berarti device hampir horizontal/miring ekstrem
+      // relatif terhadap posisi memotret tegak lurus ke barcode.
+      final tilted = event.z.abs() < 3.0;
+      if (tilted != _isTilted && mounted) {
+        setState(() => _isTilted = tilted);
+      }
+    });
+  }
+
   @override
   void dispose() {
+    _detectedFlashTimer?.cancel();
+    _autoTorchTimer?.cancel();
+    _sensitivityTimer?.cancel();
+    _accelSub?.cancel();
     if (_ownsController) _controller.dispose();
     super.dispose();
   }
@@ -121,8 +238,14 @@ class _ScannerViewState extends State<ScannerView> {
                 ),
               ),
               IgnorePointer(
-                child: CustomPaint(
-                  painter: _ScanGuidePainter(guideRect: guideRect),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  child: CustomPaint(
+                    painter: _ScanGuidePainter(
+                      guideRect: guideRect,
+                      isDetected: _justDetected,
+                    ),
+                  ),
                 ),
               ),
               if (widget.hint != null && widget.hint!.isNotEmpty)
@@ -132,9 +255,84 @@ class _ScannerViewState extends State<ScannerView> {
                   top: guideRect.bottom - _HintBadge.height - 12,
                   child: _HintBadge(text: widget.hint!),
                 ),
+              if (widget.enableTiltWarning && _isTilted)
+                const Positioned(
+                  top: 48,
+                  left: 0,
+                  right: 0,
+                  child: Center(child: _TiltWarningBanner()),
+                ),
+              if (widget.showTorchButton)
+                Positioned(
+                  right: 16,
+                  bottom: guideRect.bottom + 16,
+                  child: _TorchButton(controller: _controller),
+                ),
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// Tombol torch manual, warnanya ngikutin state torch dari controller.
+class _TorchButton extends StatelessWidget {
+  const _TorchButton({required this.controller});
+
+  final MobileScannerController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<MobileScannerState>(
+      valueListenable: controller,
+      builder: (context, state, _) {
+        final isOn = state.torchState == TorchState.on;
+        return Material(
+          color: isOn
+              ? Colors.amber.withValues(alpha: 0.9)
+              : Colors.black.withValues(alpha: 0.5),
+          shape: const CircleBorder(),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () => controller.toggleTorch(),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Icon(
+                isOn ? Icons.flash_on : Icons.flash_off,
+                color: isOn ? Colors.black : Colors.white,
+                size: 22,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Banner peringatan saat device terdeteksi terlalu miring lewat accelerometer.
+class _TiltWarningBanner extends StatelessWidget {
+  const _TiltWarningBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.screen_rotation_alt, color: Colors.amber, size: 18),
+          SizedBox(width: 8),
+          Text(
+            'Tegakkan kamera',
+            style: TextStyle(color: Colors.white, fontSize: 13),
+          ),
+        ],
       ),
     );
   }
@@ -188,11 +386,13 @@ class _HintBadge extends StatelessWidget {
 
 /// Dims everything outside [guideRect] and draws corner brackets around it,
 /// like a typical QR-scanner viewfinder — purely a visual aid, doesn't
-/// affect what area actually gets scanned.
+/// affect what area actually gets scanned. Brackets turn green briefly when
+/// [isDetected] is true, giving instant confirmation of a successful scan.
 class _ScanGuidePainter extends CustomPainter {
-  const _ScanGuidePainter({required this.guideRect});
+  const _ScanGuidePainter({required this.guideRect, required this.isDetected});
 
   final Rect guideRect;
+  final bool isDetected;
 
   static const _cornerLength = 28.0;
   static const _cornerRadius = 0.0;
@@ -218,7 +418,7 @@ class _ScanGuidePainter extends CustomPainter {
     );
 
     final cornerPaint = Paint()
-      ..color = Colors.white
+      ..color = isDetected ? Colors.greenAccent : Colors.white
       ..strokeWidth = _strokeWidth
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -258,5 +458,6 @@ class _ScanGuidePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ScanGuidePainter oldDelegate) =>
-      oldDelegate.guideRect != guideRect;
+      oldDelegate.guideRect != guideRect ||
+      oldDelegate.isDetected != isDetected;
 }

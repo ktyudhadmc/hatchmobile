@@ -49,10 +49,11 @@ dependencies:
   flutter_svg: ^2.2.3
 
   # QR / barcode scanning
-  mobile_scanner: ^7.0.0
+  mobile_scanner: ^7.4.2
 
   # PIN input fields
   pin_code_fields: ^8.0.1
+  sensors_plus: ^7.1.0
 
 dev_dependencies:
   flutter_test:
