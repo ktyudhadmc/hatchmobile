@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/app_update_info.dart';
@@ -16,16 +15,13 @@ class AppUpdateRepositoryImpl implements AppUpdateRepository {
 
   @override
   Future<AppUpdateInfo?> checkForUpdate(String currentVersion) async {
-    try {
-      final latest = await _remote.fetchLatestRelease();
-      if (latest == null) return null;
-      return _isNewer(latest.version, currentVersion) ? latest : null;
-    } catch (e) {
-      // A failed update check is never fatal to the user — just means no
-      // update banner shows up this session.
-      debugPrint('[AppUpdate] check failed: $e');
-      return null;
-    }
+    // Network/parse failures are intentionally NOT caught here — they
+    // propagate so appUpdateCheckProvider resolves to AsyncError, letting
+    // the UI tell "check failed" apart from "checked fine, already latest"
+    // (both of which would otherwise collapse into the same null).
+    final latest = await _remote.fetchLatestRelease();
+    if (latest == null) return null;
+    return _isNewer(latest.version, currentVersion) ? latest : null;
   }
 
   /// Compares two `X.Y.Z` version strings numerically, part by part

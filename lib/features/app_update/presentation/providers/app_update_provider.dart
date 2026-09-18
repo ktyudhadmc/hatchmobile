@@ -10,8 +10,9 @@ final currentAppVersionProvider = FutureProvider<String>((ref) async {
   return packageInfo.version;
 });
 
-/// Null means either there's no newer release, or the check failed — both
-/// cases just mean "don't show the update button".
+/// Null data means the check succeeded but there's no newer release. A
+/// failed check surfaces as [AsyncError] instead, so the UI (see
+/// AppUpdateBanner) can tell the two apart.
 final appUpdateCheckProvider = FutureProvider<AppUpdateInfo?>((ref) async {
   final currentVersion = await ref.watch(currentAppVersionProvider.future);
   final usecase = CheckForUpdateUsecase(ref.watch(appUpdateRepositoryProvider));

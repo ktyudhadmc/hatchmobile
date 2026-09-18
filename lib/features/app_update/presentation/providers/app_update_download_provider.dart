@@ -7,10 +7,9 @@ import '../../domain/entities/app_update_info.dart';
 import 'app_update_download_state.dart';
 
 final appUpdateDownloadProvider =
-    StateNotifierProvider.autoDispose<
-      AppUpdateDownloadNotifier,
-      AppUpdateDownloadState
-    >((ref) {
+    StateNotifierProvider<AppUpdateDownloadNotifier, AppUpdateDownloadState>((
+      ref,
+    ) {
       return AppUpdateDownloadNotifier(
         ref.watch(appUpdateRemoteDatasourceProvider),
       );
@@ -20,6 +19,13 @@ final appUpdateDownloadProvider =
 /// OS package installer — the closest thing to "install otomatis" Android
 /// allows a regular (non-system) app to do; the user still gets the OS's
 /// own install confirmation prompt, which cannot be skipped without root.
+///
+/// Deliberately NOT `.autoDispose`: the download is kicked off from the
+/// Profile page banner, but the user is free to navigate elsewhere while it
+/// runs — an autoDispose provider would tear down mid-download the moment
+/// nothing was watching it, silently killing the transfer. [AppUpdateProgressChip]
+/// (shown globally, see main.dart) keeps the progress visible wherever the
+/// user goes.
 class AppUpdateDownloadNotifier extends StateNotifier<AppUpdateDownloadState> {
   AppUpdateDownloadNotifier(this._remote) : super(const AppUpdateDownloadState());
 

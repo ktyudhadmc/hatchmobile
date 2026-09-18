@@ -9,6 +9,7 @@ import 'core/navigation/app_navigator.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/device_info_helper.dart';
+import 'features/app_update/presentation/widgets/app_update_progress_chip.dart';
 import 'shared/widgets/connectivity_gate.dart';
 
 void main() async {
@@ -40,7 +41,15 @@ class MainApp extends ConsumerWidget {
         routerConfig: router,
         builder: (context, child) => ConnectivityGate(
           navigatorKey: appNavigatorKey,
-          child: child ?? const SizedBox.shrink(),
+          child: Stack(
+            children: [
+              child ?? const SizedBox.shrink(),
+              const Align(
+                alignment: Alignment.topCenter,
+                child: AppUpdateProgressChip(),
+              ),
+            ],
+          ),
         ),
       ),
     );

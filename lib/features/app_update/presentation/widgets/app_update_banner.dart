@@ -2,32 +2,45 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/utils/dialog_helper.dart';
 import '../../domain/entities/app_update_info.dart';
 import '../providers/app_update_download_provider.dart';
 import '../providers/app_update_download_state.dart';
 import '../providers/app_update_provider.dart';
 
-/// Attention-grabbing banner shown only when [appUpdateCheckProvider] finds
-/// a newer release — deliberately styled unlike the white/bordered profile
-/// card (solid gradient, white text/icon) so it reads as an announcement,
-/// not just another settings row. Renders nothing when there's no update,
-/// so it never sits around as empty chrome.
+/// Update status card, always visible on the Profile page — not just when a
+/// newer release is found. While [appUpdateCheckProvider] is loading it
+/// shows a neutral "checking" state; once resolved it either offers the
+/// update (newer release found), confirms the app is already up to date, or
+/// — if the check itself failed (network/parse error) — says so explicitly
+/// with a retry button, instead of quietly looking the same as "up to date".
 class AppUpdateBanner extends ConsumerWidget {
   const AppUpdateBanner({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final updateInfo = ref.watch(appUpdateCheckProvider).valueOrNull;
-    if (updateInfo == null) return const SizedBox.shrink();
+    final checkState = ref.watch(appUpdateCheckProvider);
+    final isChecking = checkState.isLoading;
+    final hasFailed = checkState.hasError && !isChecking;
+    final updateInfo = checkState.valueOrNull;
+    final hasUpdate = updateInfo != null;
 
     final downloadState = ref.watch(appUpdateDownloadProvider);
 
-    ref.listen(appUpdateDownloadProvider, (previous, next) {
-      if (next.status == AppUpdateDownloadStatus.error) {
-        ToastHelper.error(next.errorMessage ?? 'Gagal mengunduh update');
-      }
-    });
+    final String title;
+    final String subtitle;
+    if (isChecking) {
+      title = 'Memeriksa pembaruan…';
+      subtitle = 'Mohon tunggu sebentar';
+    } else if (hasFailed) {
+      title = 'Gagal memeriksa pembaruan';
+      subtitle = 'Periksa koneksi internet, lalu coba lagi';
+    } else if (hasUpdate) {
+      title = 'Update tersedia';
+      subtitle = 'Versi ${updateInfo.version} siap diunduh';
+    } else {
+      title = 'Sudah versi terbaru';
+      subtitle = 'Tidak ada pembaruan baru saat ini';
+    }
 
     return Container(
       width: double.infinity,
@@ -60,8 +73,12 @@ class AppUpdateBanner extends ConsumerWidget {
               color: Colors.white.withValues(alpha: 0.18),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.system_update_alt_rounded,
+            child: Icon(
+              hasFailed
+                  ? Icons.error_outline_rounded
+                  : hasUpdate
+                  ? Icons.system_update_alt_rounded
+                  : Icons.check_circle_outline_rounded,
               color: Colors.white,
               size: 22,
             ),
@@ -71,9 +88,9 @@ class AppUpdateBanner extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Update tersedia',
-                  style: TextStyle(
+                Text(
+                  title,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
@@ -81,7 +98,7 @@ class AppUpdateBanner extends ConsumerWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Versi ${updateInfo.version} siap diunduh',
+                  subtitle,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.85),
                     fontSize: 12,
@@ -91,7 +108,12 @@ class AppUpdateBanner extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 8),
-          _ActionButton(info: updateInfo, state: downloadState),
+          _ActionButton(
+            info: updateInfo,
+            state: downloadState,
+            isChecking: isChecking,
+            hasFailed: hasFailed,
+          ),
         ],
       ),
     );
@@ -99,14 +121,21 @@ class AppUpdateBanner extends ConsumerWidget {
 }
 
 class _ActionButton extends ConsumerWidget {
-  const _ActionButton({required this.info, required this.state});
+  const _ActionButton({
+    required this.info,
+    required this.state,
+    required this.isChecking,
+    required this.hasFailed,
+  });
 
-  final AppUpdateInfo info;
+  final AppUpdateInfo? info;
   final AppUpdateDownloadState state;
+  final bool isChecking;
+  final bool hasFailed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (state.isBusy) {
+    if (isChecking || state.isBusy) {
       return SizedBox(
         width: 36,
         height: 36,
@@ -122,19 +151,47 @@ class _ActionButton extends ConsumerWidget {
       );
     }
 
+    if (hasFailed) {
+      return ElevatedButton(
+        onPressed: () => ref.invalidate(appUpdateCheckProvider),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: AppTheme.primaryColor,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+        child: const Text(
+          'Coba lagi',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        ),
+      );
+    }
+
+    final hasUpdate = info != null;
+
     return ElevatedButton(
-      onPressed: () =>
-          ref.read(appUpdateDownloadProvider.notifier).downloadAndInstall(info),
+      onPressed: hasUpdate
+          ? () => ref
+                .read(appUpdateDownloadProvider.notifier)
+                .downloadAndInstall(info!)
+          : null,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white,
+        backgroundColor: hasUpdate
+            ? Colors.white
+            : Colors.white.withValues(alpha: 0.3),
         foregroundColor: AppTheme.primaryColor,
+        disabledBackgroundColor: Colors.white.withValues(alpha: 0.3),
+        disabledForegroundColor: Colors.white.withValues(alpha: 0.7),
         elevation: 0,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
-      child: const Text(
-        'Update',
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+      child: Text(
+        hasUpdate ? 'Update' : 'Terbaru',
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
       ),
     );
   }
