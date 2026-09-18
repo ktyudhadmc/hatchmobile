@@ -125,13 +125,8 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.primaryColor.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -220,8 +215,8 @@ class _BasketCard extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 26,
-          height: 26,
+          constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: AppTheme.primaryColor.withValues(alpha: 0.1),
@@ -239,7 +234,7 @@ class _BasketCard extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: Text(
-            'Henhouse ${grade.henhouse ?? '-'}',
+            grade.henhouse ?? '-',
             style: const TextStyle(color: Color(0xFF7B7B7B), fontSize: 11),
           ),
         ),

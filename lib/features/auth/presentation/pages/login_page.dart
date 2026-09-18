@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/constants/asset_constants.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/dialog_helper.dart';
 import '../../../../shared/widgets/form/form_text_field.dart';
+import '../../../app_update/presentation/providers/app_update_provider.dart';
 import '../../domain/entities/user.dart';
 import '../providers/auth_provider.dart';
 
@@ -105,17 +108,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: 72,
-                          height: 72,
+                          width: 76,
+                          height: 76,
+                          padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.factory_outlined,
                             color: Colors.white,
-                            size: 36,
+                            borderRadius: BorderRadius.circular(20),
                           ),
+                          child: SvgPicture.asset(AssetConstants.logoPeternak),
                         ),
                         const SizedBox(height: 16),
                         const Text(
@@ -124,14 +124,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             color: Colors.white,
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Login to continue',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.8),
-                            fontSize: 13,
                           ),
                         ),
                       ],
@@ -212,6 +204,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       ),
                       const SizedBox(height: 28),
                       _buildSubmitButton('LOGIN', screenWidth, isSubmitting),
+                      const SizedBox(height: 12),
+                      Center(child: _buildVersionLabel(ref)),
                       SizedBox(height: screenHeight * 0.02),
                     ],
                   ),
@@ -221,6 +215,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildVersionLabel(WidgetRef ref) {
+    final version = ref.watch(currentAppVersionProvider).valueOrNull;
+    if (version == null) return const SizedBox.shrink();
+
+    return Text(
+      'v$version',
+      style: const TextStyle(color: Color(0xFFB0B0B0), fontSize: 11),
     );
   }
 

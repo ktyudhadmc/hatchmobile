@@ -39,10 +39,18 @@ class RefreshableView extends StatelessWidget {
             refreshTriggerPullDistance,
             refreshIndicatorExtent,
           ) {
-            return Center(
-              child: CupertinoActivityIndicator(
-                color: AppTheme.primaryColor,
-                radius: 12,
+            // Anchored to the bottom of the growing pull area — right above
+            // where the content starts — instead of centered in it, so the
+            // spinner stays put as the user keeps pulling further instead of
+            // drifting down the screen with them.
+            return Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: CupertinoActivityIndicator(
+                  color: AppTheme.primaryColor,
+                  radius: 12,
+                ),
               ),
             );
           },

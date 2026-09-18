@@ -256,16 +256,17 @@ class _ScannerViewState extends State<ScannerView> {
               if (widget.instructionText != null &&
                   widget.instructionText!.isNotEmpty)
                 Positioned(
-                  left: 24,
-                  right: 24,
-                  top: guideRect.top - 44,
+                  left: 40,
+                  right: 40,
+                  top: guideRect.top - 90,
                   child: Text(
                     widget.instructionText!,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
-                      fontSize: 14,
+                      fontSize: 17,
+                      height: 1.3,
                     ),
                   ),
                 ),
@@ -374,7 +375,7 @@ class _HintBadge extends StatelessWidget {
         height: height,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.65),
+          color: Colors.amber,
           borderRadius: BorderRadius.circular(height / 2),
         ),
         // widthFactor: 1 shrink-wraps to the text so the badge stays narrow
@@ -388,7 +389,7 @@ class _HintBadge extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
             style: const TextStyle(
-              color: Colors.white,
+              color: Colors.black,
               fontWeight: FontWeight.w600,
               fontSize: 13,
             ),
@@ -399,11 +400,11 @@ class _HintBadge extends StatelessWidget {
   }
 }
 
-/// Dims everything outside [guideRect] and draws a rounded border around it,
-/// like a typical QR-scanner viewfinder — purely a visual aid, doesn't
-/// affect what area actually gets scanned. The border turns green briefly
-/// when [isDetected] is true, giving instant confirmation of a successful
-/// scan.
+/// Dims everything outside [guideRect] and draws rounded corner brackets
+/// around it, like a typical QR-scanner viewfinder — purely a visual aid,
+/// doesn't affect what area actually gets scanned. The brackets turn green
+/// briefly when [isDetected] is true, giving instant confirmation of a
+/// successful scan.
 class _ScanGuidePainter extends CustomPainter {
   const _ScanGuidePainter({required this.guideRect, required this.isDetected});
 
@@ -411,7 +412,8 @@ class _ScanGuidePainter extends CustomPainter {
   final bool isDetected;
 
   static const _cornerRadius = 20.0;
-  static const _strokeWidth = 3.0;
+  static const _cornerLength = 32.0;
+  static const _strokeWidth = 4.0;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -435,12 +437,57 @@ class _ScanGuidePainter extends CustomPainter {
     final borderPaint = Paint()
       ..color = isDetected ? Colors.greenAccent : Colors.white
       ..strokeWidth = _strokeWidth
-      ..style = PaintingStyle.stroke;
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
 
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(guideRect, const Radius.circular(_cornerRadius)),
-      borderPaint,
-    );
+    final r = guideRect;
+    final c = _cornerRadius;
+    final l = _cornerLength;
+    const halfPi = 1.5707963267948966;
+    const pi = 3.14159265358979323846;
+
+    void drawCorner(Offset arcCenter, double startAngle, List<Offset> legs) {
+      canvas.drawArc(
+        Rect.fromCircle(center: arcCenter, radius: c),
+        startAngle,
+        halfPi,
+        false,
+        borderPaint,
+      );
+      for (var i = 0; i < legs.length; i += 2) {
+        canvas.drawLine(legs[i], legs[i + 1], borderPaint);
+      }
+    }
+
+    // Top-left: legs point down and right from the arc's tangent points.
+    drawCorner(Offset(r.left + c, r.top + c), pi, [
+      Offset(r.left, r.top + c),
+      Offset(r.left, r.top + l),
+      Offset(r.left + c, r.top),
+      Offset(r.left + l, r.top),
+    ]);
+    // Top-right
+    drawCorner(Offset(r.right - c, r.top + c), -halfPi, [
+      Offset(r.right - c, r.top),
+      Offset(r.right - l, r.top),
+      Offset(r.right, r.top + c),
+      Offset(r.right, r.top + l),
+    ]);
+    // Bottom-right
+    drawCorner(Offset(r.right - c, r.bottom - c), 0, [
+      Offset(r.right, r.bottom - c),
+      Offset(r.right, r.bottom - l),
+      Offset(r.right - c, r.bottom),
+      Offset(r.right - l, r.bottom),
+    ]);
+    // Bottom-left
+    drawCorner(Offset(r.left + c, r.bottom - c), halfPi, [
+      Offset(r.left + c, r.bottom),
+      Offset(r.left + l, r.bottom),
+      Offset(r.left, r.bottom - c),
+      Offset(r.left, r.bottom - l),
+    ]);
   }
 
   @override

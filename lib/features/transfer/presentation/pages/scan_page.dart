@@ -168,7 +168,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
   }
 
   /// Persistent sheet-like bar pinned to the bottom of the screen, sized to
-  /// ~16% of the screen height so it reads as a proper bottom sheet rather
+  /// ~12% of the screen height so it reads as a proper bottom sheet rather
   /// than a slim strip. Tapping it — or dragging its handle upward — slides
   /// the manual-entry sheet up from underneath.
   Widget _buildBasketCodeBar() {
@@ -189,9 +189,9 @@ class _ScanPageState extends ConsumerState<ScanPage> {
         child: SafeArea(
           top: false,
           child: SizedBox(
-            height: screenHeight * 0.16,
+            height: screenHeight * 0.12,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 14),
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
               child: Column(
                 children: [
                   Container(
@@ -213,7 +213,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Text(
-                          'Basket Code',
+                          'Search Basket Code',
                           style: TextStyle(
                             color: AppTheme.primaryColor,
                             fontWeight: FontWeight.w600,
