@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../../../../core/native/silent_install_channel.dart';
 import '../../data/datasources/app_update_remote_datasource.dart';
 import '../../domain/entities/app_update_info.dart';
 import 'app_update_download_state.dart';
@@ -15,10 +16,13 @@ final appUpdateDownloadProvider =
       );
     });
 
-/// Downloads the release APK to a temp file, then hands it straight to the
-/// OS package installer — the closest thing to "install otomatis" Android
-/// allows a regular (non-system) app to do; the user still gets the OS's
-/// own install confirmation prompt, which cannot be skipped without root.
+/// Downloads the release APK to a temp file, then installs it. On a device
+/// where this app is enrolled as Device Owner (Android Enterprise), that
+/// install happens silently via [SilentInstallChannel] — no OS prompt at
+/// all. Everywhere else, silent install isn't permitted by the platform, so
+/// it falls back to handing the APK to the OS package installer, which
+/// still shows its own confirmation prompt that can't be skipped without
+/// that enrollment.
 ///
 /// Deliberately NOT `.autoDispose`: the download is kicked off from the
 /// Profile page banner, but the user is free to navigate elsewhere while it
@@ -38,21 +42,30 @@ class AppUpdateDownloadNotifier extends StateNotifier<AppUpdateDownloadState> {
       final apkPath = await _downloadToTempFile(update);
       state = state.copyWith(status: AppUpdateDownloadStatus.installing);
 
-      final result = await OpenFilex.open(apkPath);
-      if (result.type != ResultType.done) {
-        state = state.copyWith(
-          status: AppUpdateDownloadStatus.error,
-          errorMessage: result.message,
-        );
-        return;
-      }
+      await _install(apkPath);
 
       state = const AppUpdateDownloadState();
     } catch (e) {
       state = state.copyWith(
         status: AppUpdateDownloadStatus.error,
-        errorMessage: 'Gagal mengunduh update: $e',
+        errorMessage: 'Failed to download update: $e',
       );
+    }
+  }
+
+  Future<void> _install(String apkPath) async {
+    if (await SilentInstallChannel.isDeviceOwner()) {
+      try {
+        await SilentInstallChannel.silentInstall(apkPath);
+        return;
+      } catch (_) {
+        // Fall through to the normal OS-installer flow below.
+      }
+    }
+
+    final result = await OpenFilex.open(apkPath);
+    if (result.type != ResultType.done) {
+      throw Exception(result.message);
     }
   }
 

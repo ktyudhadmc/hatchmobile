@@ -266,7 +266,7 @@ class _ScannerViewState extends State<ScannerView> {
                 Positioned(
                   right: 16,
                   bottom: guideRect.bottom + 16,
-                  child: _TorchButton(controller: _controller),
+                  child: TorchButton(controller: _controller),
                 ),
             ],
           );
@@ -277,8 +277,8 @@ class _ScannerViewState extends State<ScannerView> {
 }
 
 /// Tombol torch manual, warnanya ngikutin state torch dari controller.
-class _TorchButton extends StatelessWidget {
-  const _TorchButton({required this.controller});
+class TorchButton extends StatelessWidget {
+  const TorchButton({super.key, required this.controller});
 
   final MobileScannerController controller;
 

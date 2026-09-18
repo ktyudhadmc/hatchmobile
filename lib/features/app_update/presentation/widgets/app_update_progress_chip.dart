@@ -23,7 +23,7 @@ class AppUpdateProgressChip extends ConsumerWidget {
 
     ref.listen(appUpdateDownloadProvider, (previous, next) {
       if (next.status == AppUpdateDownloadStatus.error) {
-        ToastHelper.error(next.errorMessage ?? 'Gagal mengunduh update');
+        ToastHelper.error(next.errorMessage ?? 'Failed to download update');
         ref.read(appUpdateDownloadProvider.notifier).reset();
       }
     });
@@ -32,8 +32,8 @@ class AppUpdateProgressChip extends ConsumerWidget {
 
     final isInstalling = state.status == AppUpdateDownloadStatus.installing;
     final label = isInstalling
-        ? 'Menyiapkan installer…'
-        : 'Mengunduh update ${(state.progress * 100).clamp(0, 100).toStringAsFixed(0)}%';
+        ? 'Preparing installer…'
+        : 'Downloading update ${(state.progress * 100).clamp(0, 100).toStringAsFixed(0)}%';
 
     return SafeArea(
       bottom: false,
@@ -74,7 +74,7 @@ class AppUpdateProgressChip extends ConsumerWidget {
                       ),
                     ),
                     const Text(
-                      'Jangan tutup atau hapus aplikasi sampai selesai',
+                      "Don't close or uninstall the app until this finishes",
                       style: TextStyle(color: Colors.white70, fontSize: 10),
                     ),
                   ],

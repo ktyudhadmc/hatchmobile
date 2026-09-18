@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/form/pin_code_input.dart';
 import '../../../../shared/widgets/scanner/scanner_view.dart';
 import '../../domain/entities/transfer_basket.dart';
 import '../providers/transfer_provider.dart';
+import '../widgets/scanner/transfer_scanner_controller.dart';
 import '../widgets/transfer_not_found_sheet.dart';
 import '../widgets/transfer_receive_sheet.dart';
 import '../widgets/transfer_scanner_view.dart';
@@ -21,10 +23,21 @@ class ScanPage extends ConsumerStatefulWidget {
 }
 
 class _ScanPageState extends ConsumerState<ScanPage> {
+  // Owned here (instead of letting TransferScannerView create its own) so
+  // the torch action in the AppBar can control the same camera session.
+  late final MobileScannerController _controller =
+      buildTransferScannerController();
+
   TransferBasket? _scannedBasket;
   bool _basketNotFound = false;
   String _notFoundCode = '';
   bool _isMockDialogOpen = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   void _resumeScanning() {
     setState(() {
@@ -154,34 +167,45 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     ref.read(scanBasketProvider.notifier).scan(code);
   }
 
-  Widget _buildMockScanButton() {
+  /// Persistent bar pinned to the bottom of the screen — tapping it slides
+  /// the manual-entry sheet up from underneath, like expanding a bottom
+  /// sheet's own handle.
+  Widget _buildBasketCodeBar() {
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(24),
-      elevation: 3,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      elevation: 6,
       child: InkWell(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         onTap: _onMockScan,
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.search_outlined,
-                color: AppTheme.primaryColor,
-                size: 20,
-              ),
-              SizedBox(width: 8),
-              Text(
-                'Basket Code',
-                style: TextStyle(
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.search_outlined,
                   color: AppTheme.primaryColor,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: AppTheme.fontFamily,
+                  size: 20,
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Basket Code',
+                    style: TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: AppTheme.fontFamily,
+                    ),
+                  ),
+                ),
+                const Icon(
+                  Icons.keyboard_arrow_up_rounded,
+                  color: AppTheme.primaryColor,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -191,71 +215,65 @@ class _ScanPageState extends ConsumerState<ScanPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/home'),
         ),
-        title: const Text('Scan'),
+        title: const Text('Scan', style: TextStyle(color: Colors.white)),
+        actions: [
+          TorchButton(controller: _controller),
+          const SizedBox(width: 12),
+        ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          // Same formula TransferScannerView feeds into ScannerView's
-          // guideOffsetY — kept in sync so this button lands right under
-          // the guide box's bottom edge, not just visually close to it.
-          final bodyHeight = constraints.maxHeight;
-          final guideCenterY = bodyHeight / 2 - bodyHeight * 0.18;
-          final guideBottom =
-              guideCenterY + ScannerView.defaultGuideBoxSize / 2;
-
-          return Stack(
-            children: [
-              Positioned.fill(
-                child: TransferScannerView(
-                  paused:
-                      _scannedBasket != null ||
-                      _basketNotFound ||
-                      _isMockDialogOpen,
-                  onBasketFound: (basket) => setState(() {
-                    _scannedBasket = basket;
-                    _basketNotFound = false;
-                  }),
-                  onBasketNotFound: (code) => setState(() {
-                    _scannedBasket = null;
-                    _basketNotFound = true;
-                    _notFoundCode = code;
-                  }),
-                ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: TransferScannerView(
+              controller: _controller,
+              showTorchButton: false,
+              paused:
+                  _scannedBasket != null ||
+                  _basketNotFound ||
+                  _isMockDialogOpen,
+              onBasketFound: (basket) => setState(() {
+                _scannedBasket = basket;
+                _basketNotFound = false;
+              }),
+              onBasketNotFound: (code) => setState(() {
+                _scannedBasket = null;
+                _basketNotFound = true;
+                _notFoundCode = code;
+              }),
+            ),
+          ),
+          if (_scannedBasket == null && !_basketNotFound && !_isMockDialogOpen)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: _buildBasketCodeBar(),
+            ),
+          if (_scannedBasket != null)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: TransferReceiveSheet(
+                basket: _scannedBasket!,
+                onDismiss: _resumeScanning,
+                onBack: _resumeScanning,
               ),
-              if (_scannedBasket == null &&
-                  !_basketNotFound &&
-                  !_isMockDialogOpen)
-                Positioned(
-                  top: guideBottom + 16,
-                  left: 0,
-                  right: 0,
-                  child: Center(child: _buildMockScanButton()),
-                ),
-              if (_scannedBasket != null)
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: TransferReceiveSheet(
-                    basket: _scannedBasket!,
-                    onDismiss: _resumeScanning,
-                    onBack: _resumeScanning,
-                  ),
-                ),
-              if (_basketNotFound)
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: TransferNotFoundSheet(
-                    onDismiss: _resumeScanning,
-                    code: _notFoundCode,
-                  ),
-                ),
-            ],
-          );
-        },
+            ),
+          if (_basketNotFound)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: TransferNotFoundSheet(
+                onDismiss: _resumeScanning,
+                code: _notFoundCode,
+              ),
+            ),
+        ],
       ),
     );
   }

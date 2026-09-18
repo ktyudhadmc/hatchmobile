@@ -7,12 +7,9 @@ import '../providers/app_update_download_provider.dart';
 import '../providers/app_update_download_state.dart';
 import '../providers/app_update_provider.dart';
 
-/// Update status card, always visible on the Profile page — not just when a
-/// newer release is found. While [appUpdateCheckProvider] is loading it
-/// shows a neutral "checking" state; once resolved it either offers the
-/// update (newer release found), confirms the app is already up to date, or
-/// — if the check itself failed (network/parse error) — says so explicitly
-/// with a retry button, instead of quietly looking the same as "up to date".
+/// Update status card shown on the Settings page — reports the update
+/// check's result (checking / up to date / update available / failed) and,
+/// once there's an update, lets the user download and install it.
 class AppUpdateBanner extends ConsumerWidget {
   const AppUpdateBanner({super.key});
 
@@ -24,28 +21,26 @@ class AppUpdateBanner extends ConsumerWidget {
     final updateInfo = checkState.valueOrNull;
     final hasUpdate = updateInfo != null;
 
-    final currentVersion = ref.watch(currentAppVersionProvider).valueOrNull;
     final downloadState = ref.watch(appUpdateDownloadProvider);
 
     final String title;
     final String subtitle;
     if (isChecking) {
-      title = 'Memeriksa pembaruan…';
-      subtitle = 'Mohon tunggu sebentar';
+      title = 'Checking for updates…';
+      subtitle = 'Please wait a moment';
     } else if (hasFailed) {
-      title = 'Gagal memeriksa pembaruan';
-      subtitle = 'Periksa koneksi internet, lalu coba lagi';
+      title = 'Update check failed';
+      subtitle = 'Check your internet connection and try again';
     } else if (hasUpdate) {
-      title = 'Update tersedia';
-      subtitle = 'Versi ${updateInfo.version} siap diunduh';
+      title = 'Update available';
+      subtitle = 'Version ${updateInfo.version} is ready to download';
     } else {
-      title = 'Sudah versi terbaru';
-      subtitle = 'Tidak ada pembaruan baru saat ini';
+      title = 'You\'re up to date';
+      subtitle = 'No new updates right now';
     }
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -66,13 +61,15 @@ class AppUpdateBanner extends ConsumerWidget {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.18),
                   shape: BoxShape.circle,
@@ -84,20 +81,21 @@ class AppUpdateBanner extends ConsumerWidget {
                       ? Icons.system_update_alt_rounded
                       : Icons.check_circle_outline_rounded,
                   color: Colors.white,
-                  size: 22,
+                  size: 20,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       title,
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 15,
+                        fontSize: 14,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -105,30 +103,21 @@ class AppUpdateBanner extends ConsumerWidget {
                       subtitle,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.85),
-                        fontSize: 12,
+                        fontSize: 11,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              _ActionButton(
-                info: updateInfo,
-                state: downloadState,
-                isChecking: isChecking,
-                hasFailed: hasFailed,
-              ),
             ],
           ),
-          if (currentVersion != null) ...[
-            const SizedBox(height: 10),
-            Text(
-              'Versi terpasang: v$currentVersion',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-              ),
+          if (hasFailed || hasUpdate || downloadState.isBusy) ...[
+            const SizedBox(height: 12),
+            _ActionButton(
+              info: updateInfo,
+              state: downloadState,
+              isChecking: isChecking,
+              hasFailed: hasFailed,
             ),
           ],
         ],
@@ -152,63 +141,71 @@ class _ActionButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (isChecking || state.isBusy) {
+    if (isChecking) return const SizedBox.shrink();
+
+    if (state.isBusy) {
       return SizedBox(
-        width: 36,
-        height: 36,
-        child: CircularProgressIndicator(
-          strokeWidth: 2.5,
-          color: Colors.white,
-          value:
-              state.status == AppUpdateDownloadStatus.downloading &&
-                  state.progress > 0
-              ? state.progress
-              : null,
+        height: 32,
+        child: Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              color: Colors.white,
+              value:
+                  state.status == AppUpdateDownloadStatus.downloading &&
+                      state.progress > 0
+                  ? state.progress
+                  : null,
+            ),
+          ),
         ),
       );
     }
 
     if (hasFailed) {
-      return ElevatedButton(
-        onPressed: () => ref.invalidate(appUpdateCheckProvider),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: AppTheme.primaryColor,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+      return SizedBox(
+        width: double.infinity,
+        child: TextButton(
+          onPressed: () => ref.invalidate(appUpdateCheckProvider),
+          style: TextButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: AppTheme.primaryColor,
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
           ),
-        ),
-        child: const Text(
-          'Coba lagi',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          child: const Text(
+            'Retry',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
         ),
       );
     }
 
     final hasUpdate = info != null;
+    if (!hasUpdate) return const SizedBox.shrink();
 
-    return ElevatedButton(
-      onPressed: hasUpdate
-          ? () => ref
-                .read(appUpdateDownloadProvider.notifier)
-                .downloadAndInstall(info!)
-          : null,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: hasUpdate
-            ? Colors.white
-            : Colors.white.withValues(alpha: 0.3),
-        foregroundColor: AppTheme.primaryColor,
-        disabledBackgroundColor: Colors.white.withValues(alpha: 0.3),
-        disabledForegroundColor: Colors.white.withValues(alpha: 0.7),
-        elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      ),
-      child: Text(
-        hasUpdate ? 'Update' : 'Terbaru',
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+    return SizedBox(
+      width: double.infinity,
+      child: TextButton(
+        onPressed: () => ref
+            .read(appUpdateDownloadProvider.notifier)
+            .downloadAndInstall(info!),
+        style: TextButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: AppTheme.primaryColor,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+        child: const Text(
+          'Update',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        ),
       ),
     );
   }

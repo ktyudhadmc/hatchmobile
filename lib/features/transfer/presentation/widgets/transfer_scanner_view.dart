@@ -24,6 +24,7 @@ class TransferScannerView extends ConsumerStatefulWidget {
     super.key,
     this.controller,
     this.paused = false,
+    this.showTorchButton = true,
     required this.onBasketFound,
     required this.onBasketNotFound,
   });
@@ -34,6 +35,11 @@ class TransferScannerView extends ConsumerStatefulWidget {
 
   /// Saat true: kamera berhenti dan deteksi diabaikan.
   final bool paused;
+
+  /// Kalau false, ScannerView tidak menampilkan tombol torch bawaannya —
+  /// dipakai saat caller (mis. ScanPage) menaruh tombol torch sendiri di
+  /// AppBar dan berbagi [controller] yang sama.
+  final bool showTorchButton;
 
   final void Function(TransferBasket basket) onBasketFound;
   final void Function(String code) onBasketNotFound;
@@ -143,6 +149,7 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
               guideOffsetY: constraints.maxHeight * 0.18,
               onDetect: _onDetect,
               hint: _scanState.lookupCode,
+              showTorchButton: widget.showTorchButton,
             ),
             if (_scanState.isLookingUp) const ScannerLoadingOverlay(),
           ],
