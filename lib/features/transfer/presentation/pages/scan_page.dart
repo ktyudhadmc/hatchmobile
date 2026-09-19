@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -167,68 +168,70 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     ref.read(scanBasketProvider.notifier).scan(code);
   }
 
-  /// Persistent sheet-like bar pinned to the bottom of the screen, sized to
-  /// ~12% of the screen height so it reads as a proper bottom sheet rather
-  /// than a slim strip. Tapping it — or dragging its handle upward — slides
-  /// the manual-entry sheet up from underneath.
+  /// Floating pill button hovering above the bottom of the screen — tapping
+  /// it opens the manual-entry sheet. Styled like a "checkout" CTA (pill
+  /// shape, icon badge on the left, circular arrow affordance on the
+  /// right) rather than looking like a piece of chrome docked to the
+  /// screen edge, so it reads as a clear, inviting action instead of a
+  /// utility bar.
   Widget _buildBasketCodeBar() {
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    return GestureDetector(
-      onTap: _onMockScan,
-      onVerticalDragEnd: (details) {
-        // Dragged the handle upward fast enough — treat it as "open".
-        if (details.primaryVelocity != null && details.primaryVelocity! < -200) {
-          _onMockScan();
-        }
-      },
+    return SafeArea(
+      minimum: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       child: Material(
-        color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        elevation: 6,
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: screenHeight * 0.12,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-              child: Column(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(2),
+        color: AppTheme.primaryColor,
+        borderRadius: BorderRadius.circular(100),
+        elevation: 8,
+        shadowColor: AppTheme.primaryColor.withValues(alpha: 0.5),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(100),
+          onTap: () {
+            HapticFeedback.selectionClick();
+            _onMockScan();
+          },
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 10, 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.search_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Search Basket Code',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      fontFamily: AppTheme.fontFamily,
                     ),
                   ),
-                  const Spacer(),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.search_outlined,
-                        color: AppTheme.primaryColor,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                        child: Text(
-                          'Search Basket Code',
-                          style: TextStyle(
-                            color: AppTheme.primaryColor,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: AppTheme.fontFamily,
-                          ),
-                        ),
-                      ),
-                      const Icon(
-                        Icons.keyboard_arrow_up_rounded,
-                        color: AppTheme.primaryColor,
-                      ),
-                    ],
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
                   ),
-                ],
-              ),
+                  child: const Icon(
+                    Icons.arrow_forward_rounded,
+                    color: AppTheme.primaryColor,
+                    size: 18,
+                  ),
+                ),
+              ],
             ),
           ),
         ),

@@ -28,8 +28,8 @@ class ScannerView extends StatefulWidget {
   /// the barcode within the frame provided"). Null/empty hides it.
   final String? instructionText;
 
-  /// Ukuran kotak panduan visual. Murni dekoratif — deteksi tetap jalan di
-  /// seluruh frame kamera, bukan cuma di dalam kotak ini.
+  /// Ukuran kotak panduan visual — juga dipakai sebagai [MobileScanner]'s
+  /// `scanWindow`, jadi deteksi difokuskan ke area ini, bukan seluruh frame.
   final double guideBoxSize;
 
   /// Geser posisi kotak panduan secara vertikal dari titik tengah layar.
@@ -202,6 +202,14 @@ class _ScannerViewState extends State<ScannerView> {
                 child: MobileScanner(
                   controller: _controller,
                   onDetect: _onDetect,
+                  // Restricts what the native decoder actually analyzes to
+                  // the guide box instead of the full (very high-res) frame.
+                  // Dense codes with a logo cut into the center — like a QR
+                  // with little margin to spare — need every pixel of
+                  // detail the decoder can get on the code itself; handing
+                  // it the whole frame means it wastes resolution on
+                  // background the user was never going to align there.
+                  scanWindow: guideRect,
                 ),
               ),
               IgnorePointer(
