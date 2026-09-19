@@ -7,7 +7,7 @@ import 'package:hatchmobile/features/transfer/presentation/widgets/scanner/scann
 import 'package:hatchmobile/features/transfer/presentation/widgets/scanner/transfer_scanner_controller.dart';
 import 'package:hatchmobile/features/transfer/presentation/widgets/scanner/transfer_scanner_state.dart';
 import 'package:hatchmobile/shared/widgets/scanner/scanner_view.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:hatchmobile/shared/widgets/scanner/zxing_camera_controller.dart';
 
 /// Live camera view yang scan basket QR dan fetch detailnya.
 ///
@@ -31,7 +31,7 @@ class TransferScannerView extends ConsumerStatefulWidget {
 
   /// Controller dari luar (opsional).
   /// Jika null, widget buat dan dispose sendiri.
-  final MobileScannerController? controller;
+  final ZxingCameraController? controller;
 
   /// Saat true: kamera berhenti dan deteksi diabaikan.
   final bool paused;
@@ -52,7 +52,7 @@ class TransferScannerView extends ConsumerStatefulWidget {
 class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
   // ─── Controller ────────────────────────────────────────────────────────────
 
-  late final MobileScannerController _controller;
+  late final ZxingCameraController _controller;
   late final bool _ownsController;
 
   // ─── State ─────────────────────────────────────────────────────────────────
@@ -122,11 +122,10 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
     }
   }
 
-  /// Dipanggil sekali per QR code yang terdeteksi kamera.
+  /// Dipanggil sekali per kode yang terdeteksi kamera (lewat [ScannerView]).
   ///
-  /// [code] adalah raw value hasil decode QR (isi [BarcodeCapture.rawValue]
-  /// di [ScannerView]) — untuk basket transfer, ini seharusnya basket code
-  /// (mis. "A0001"), bukan payload JSON atau URL.
+  /// [code] adalah raw text hasil decode — untuk basket transfer, ini
+  /// seharusnya basket code (mis. "A0001"), bukan payload JSON atau URL.
   void _onDetect(String code) {
     if (_scanState.isAlreadyScanning(code)) return;
     debugPrint('[TransferScanner] detected raw code: $code');

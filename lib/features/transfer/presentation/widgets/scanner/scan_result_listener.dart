@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hatchmobile/features/transfer/domain/entities/transfer_basket.dart';
 import 'package:hatchmobile/features/transfer/presentation/widgets/scanner/transfer_scanner_state.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:hatchmobile/shared/widgets/scanner/zxing_camera_controller.dart';
 
 /// Menangani perubahan state dari [scanBasketProvider] dan menerjemahkannya
 /// ke aksi UI (loading, found, not found).
@@ -15,7 +15,7 @@ class ScanResultListener {
     required this.onBasketNotFound,
   });
 
-  final MobileScannerController controller;
+  final ZxingCameraController controller;
   final void Function(TransferScannerState state) onStateChanged;
   final void Function(TransferBasket basket) onBasketFound;
   final void Function(String code) onBasketNotFound;

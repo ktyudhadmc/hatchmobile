@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'zxing_camera_controller.dart';
 
 /// Adapts camera zoom/focus to keep detection working when a code is hard
 /// for the decoder to read — off-angle (~45° from above/below/the side)
@@ -9,7 +9,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 /// exactly like a string of failed detections, which is all this tuner
 /// sees: it's driven purely by [recordFailure]/[recordSuccess] calls from
 /// the scan loop, with no camera/widget dependency beyond the
-/// [MobileScannerController] it adjusts.
+/// [ZxingCameraController] it adjusts.
 ///
 /// On a sustained failure streak, it cycles through independent recovery
 /// strategies rather than committing to just one — a fixed "always zoom
@@ -33,7 +33,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 /// code, and so they're unit-testable without a real camera.
 class ScannerSensitivityTuner {
   ScannerSensitivityTuner({
-    required MobileScannerController controller,
+    required ZxingCameraController controller,
     this.failThreshold = 6,
     this.checkInterval = const Duration(milliseconds: 800),
     this.focusNudgeCooldown = const Duration(seconds: 3),
@@ -41,7 +41,7 @@ class ScannerSensitivityTuner {
     this.cyclesBeforeReset = 4,
   }) : _controller = controller;
 
-  final MobileScannerController _controller;
+  final ZxingCameraController _controller;
 
   /// Consecutive detection failures before the next strategy kicks in.
   final int failThreshold;

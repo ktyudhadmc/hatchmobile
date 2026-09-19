@@ -1,11 +1,14 @@
 // core/widgets/scanner/scanner_view.dart
 import 'dart:async';
+import 'dart:math' as math;
 
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:flutter_zxing/flutter_zxing.dart' as zxing;
 
 import 'scanner_sensitivity_tuner.dart';
+import 'zxing_camera_controller.dart';
 
 class ScannerView extends StatefulWidget {
   /// Default of [guideBoxSize] — exposed so callers positioning something
@@ -28,8 +31,9 @@ class ScannerView extends StatefulWidget {
   /// the barcode within the frame provided"). Null/empty hides it.
   final String? instructionText;
 
-  /// Ukuran kotak panduan visual — juga dipakai sebagai [MobileScanner]'s
-  /// `scanWindow`, jadi deteksi difokuskan ke area ini, bukan seluruh frame.
+  /// Ukuran kotak panduan visual — juga dipakai untuk menghitung area crop
+  /// yang dikirim ke ZXing, jadi deteksi difokuskan ke area ini, bukan
+  /// seluruh frame kamera.
   final double guideBoxSize;
 
   /// Geser posisi kotak panduan secara vertikal dari titik tengah layar.
@@ -38,7 +42,7 @@ class ScannerView extends StatefulWidget {
 
   /// Controller dari luar — opsional.
   /// Kalau tidak diisi, widget buat sendiri dan dispose sendiri.
-  final MobileScannerController? controller;
+  final ZxingCameraController? controller;
 
   /// Kalau true, tampilkan tombol torch manual di pojok kanan bawah guide box.
   final bool showTorchButton;
@@ -49,6 +53,11 @@ class ScannerView extends StatefulWidget {
 
   /// Durasi tanpa deteksi sebelum torch otomatis dinyalakan.
   final Duration autoTorchDelay;
+
+  /// Format barcode yang dicari — bitmask dari [zxing.Format]. Default
+  /// [zxing.Format.any] (semua format didukung), karena kode basket bisa
+  /// dicetak sebagai QR atau format 2D lain.
+  final int formatFilter;
 
   const ScannerView({
     super.key,
@@ -62,6 +71,7 @@ class ScannerView extends StatefulWidget {
     this.showTorchButton = true,
     this.enableAutoTorch = true,
     this.autoTorchDelay = const Duration(seconds: 4),
+    this.formatFilter = zxing.Format.any,
   });
 
   @override
@@ -69,19 +79,19 @@ class ScannerView extends StatefulWidget {
 }
 
 class _ScannerViewState extends State<ScannerView> {
-  late final MobileScannerController _controller;
+  late final ZxingCameraController _controller;
   late final bool _ownsController;
 
-  // Zoom scale ([0, 1], MobileScanner's own scale) at the moment a pinch
-  // gesture starts, so onScaleUpdate can apply the pinch delta relative to
-  // it instead of jumping/resetting every frame.
+  // Zoom scale ([0, 1]) at the moment a pinch gesture starts, so
+  // onScaleUpdate can apply the pinch delta relative to it instead of
+  // jumping/resetting every frame.
   double _zoomAtGestureStart = 0;
 
   // Ditandai true sesaat setelah deteksi berhasil, dipakai buat kasih
   // feedback visual instan (border guide box jadi hijau) sebelum caller
   // sempat bereaksi (mis. pindah halaman).
   bool _justDetected = false;
-  BarcodeFormat? _justDetectedFormat;
+  int? _justDetectedFormat;
   Timer? _detectedFlashTimer;
 
   // Auto-torch: hitung berapa lama sejak terakhir kali tidak ada deteksi
@@ -93,47 +103,123 @@ class _ScannerViewState extends State<ScannerView> {
   // ScannerSensitivityTuner for why this matters most for off-angle scans.
   late final ScannerSensitivityTuner _sensitivityTuner;
 
+  // Guards against feeding ZXing a second frame while it's still working on
+  // one — ZXing's decode is real CPU work per frame, so overlapping calls
+  // would just queue up faster than a slow device can clear them.
+  bool _processingFrame = false;
+
+  // Crop rect (as fractions of the raw camera image) last computed from the
+  // guide box's on-screen position. Read from the image-stream callback,
+  // written from build() — camera frames arrive on their own schedule, not
+  // in sync with the widget tree, so this is how the callback learns where
+  // the guide box currently is without re-deriving it from a BuildContext.
+  double _cropWidthFraction = 0.6;
+  double _cropHeightFraction = 0.6;
+  double _cropVerticalOffsetFraction = 0;
+
   @override
   void initState() {
     super.initState();
     _ownsController = widget.controller == null;
-    _controller =
-        widget.controller ??
-        MobileScannerController(
-          formats: [BarcodeFormat.qrCode],
-          detectionSpeed: DetectionSpeed.unrestricted,
-          cameraResolution: const Size(3840, 2160),
-          autoStart: true,
-          autoZoom: true,
-        );
+    _controller = widget.controller ?? ZxingCameraController();
 
-    if (widget.enableAutoTorch) _startAutoTorchTimer();
     _sensitivityTuner = ScannerSensitivityTuner(controller: _controller)
       ..start();
+
+    zxing.zx.startCameraProcessing();
+    unawaited(_startCamera());
   }
 
-  void _onDetect(BarcodeCapture capture) {
-    if (widget.isBusy || capture.barcodes.isEmpty) {
+  Future<void> _startCamera() async {
+    await _controller.initialize();
+    if (!mounted) return;
+    if (widget.enableAutoTorch) _startAutoTorchTimer();
+    await _controller.startImageStream(_onCameraImage);
+    if (mounted) setState(() {}); // reveal the preview once it's ready
+  }
+
+  void _onCameraImage(CameraImage image) {
+    if (widget.isBusy || _processingFrame) return;
+    _processingFrame = true;
+    unawaited(_decodeImage(image).whenComplete(() => _processingFrame = false));
+  }
+
+  Future<void> _decodeImage(CameraImage image) async {
+    final cropSize = math.min(
+      (image.width * _cropWidthFraction).round(),
+      (image.height * _cropHeightFraction).round(),
+    );
+    final verticalOffsetPx =
+        (_cropVerticalOffsetFraction * (image.height - cropSize) / 2).round();
+    final cropLeft = ((image.width - cropSize) ~/ 2).clamp(
+      0,
+      math.max(0, image.width - cropSize),
+    );
+    final cropTop = ((image.height - cropSize) ~/ 2 - verticalOffsetPx).clamp(
+      0,
+      math.max(0, image.height - cropSize),
+    );
+
+    final params = zxing.DecodeParams(
+      imageFormat: _imageFormatFor(image.format.group),
+      format: widget.formatFilter,
+      width: image.width,
+      height: image.height,
+      cropLeft: cropLeft,
+      cropTop: cropTop,
+      cropWidth: cropSize,
+      cropHeight: cropSize,
+      tryHarder: true,
+      tryRotate: true,
+      tryInverted: true,
+    );
+
+    zxing.Code result;
+    try {
+      result = await zxing.zx.processCameraImage(image, params);
+    } catch (_) {
       _sensitivityTuner.recordFailure();
       return;
     }
 
-    final barcode = capture.barcodes.first;
-    final code = barcode.rawValue;
-    if (code == null || code.isEmpty) {
+    if (!mounted || widget.isBusy) return;
+
+    final code = result.text;
+    if (!result.isValid || code == null || code.isEmpty) {
       _sensitivityTuner.recordFailure();
       return;
     }
 
+    _onCodeFound(code, result.format ?? zxing.Format.none);
+  }
+
+  /// [ImageFormatGroup] → the pixel format ZXing expects — matches
+  /// flutter_zxing's own `ReaderWidget`, whose camera-stream handling this
+  /// mirrors.
+  int _imageFormatFor(ImageFormatGroup group) {
+    switch (group) {
+      case ImageFormatGroup.bgra8888:
+        return zxing.ImageFormat.bgrx;
+      case ImageFormatGroup.yuv420:
+        return zxing.ImageFormat.lum;
+      case ImageFormatGroup.jpeg:
+      case ImageFormatGroup.nv21:
+        return zxing.ImageFormat.rgb;
+      case ImageFormatGroup.unknown:
+        return zxing.ImageFormat.none;
+    }
+  }
+
+  void _onCodeFound(String code, int format) {
     _sensitivityTuner.recordSuccess();
-    _flashDetected(barcode.format);
+    _flashDetected(format);
     HapticFeedback.mediumImpact();
     _cancelAutoTorchTimer();
 
     widget.onDetect(code);
   }
 
-  void _flashDetected(BarcodeFormat format) {
+  void _flashDetected(int format) {
     setState(() {
       _justDetected = true;
       _justDetectedFormat = format;
@@ -165,6 +251,7 @@ class _ScannerViewState extends State<ScannerView> {
     _autoTorchTimer?.cancel();
     _sensitivityTuner.dispose();
     if (_ownsController) _controller.dispose();
+    zxing.zx.stopCameraProcessing();
     super.dispose();
   }
 
@@ -174,14 +261,22 @@ class _ScannerViewState extends State<ScannerView> {
       color: Colors.black,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final center =
-              constraints.biggest.center(Offset.zero) -
-              Offset(0, widget.guideOffsetY);
+          final size = constraints.biggest;
+          final center = size.center(Offset.zero) - Offset(0, widget.guideOffsetY);
           final guideRect = Rect.fromCenter(
             center: center,
             width: widget.guideBoxSize,
             height: widget.guideBoxSize,
           );
+
+          // Fractions of the *shorter* screen side, matching how the raw
+          // camera image (also roughly square-cropped) relates to it —
+          // read by _decodeImage on the next frame it processes.
+          final shorterSide = math.min(size.width, size.height);
+          _cropWidthFraction = (widget.guideBoxSize / shorterSide).clamp(0.1, 1.0);
+          _cropHeightFraction = _cropWidthFraction;
+          _cropVerticalOffsetFraction = (widget.guideOffsetY / (size.height / 2))
+              .clamp(-1.0, 1.0);
 
           return Stack(
             fit: StackFit.expand,
@@ -190,26 +285,32 @@ class _ScannerViewState extends State<ScannerView> {
                 onScaleStart: (_) =>
                     _zoomAtGestureStart = _controller.value.zoomScale,
                 onScaleUpdate: (details) {
-                  // MobileScannerController's zoom scale is linear [0, 1],
-                  // not a camera zoom factor, so map the pinch scale
-                  // logarithmically to keep the gesture feeling proportional
-                  // across the whole range instead of maxing out instantly.
+                  // Zoom scale is linear [0, 1], not a camera zoom factor,
+                  // so map the pinch scale logarithmically to keep the
+                  // gesture feeling proportional across the whole range
+                  // instead of maxing out instantly.
                   final delta = (details.scale - 1) * 0.5;
                   _controller.setZoomScale(
                     (_zoomAtGestureStart + delta).clamp(0.0, 1.0),
                   );
                 },
-                child: MobileScanner(
-                  controller: _controller,
-                  onDetect: _onDetect,
-                  // Restricts what the native decoder actually analyzes to
-                  // the guide box instead of the full (very high-res) frame.
-                  // Dense codes with a logo cut into the center — like a QR
-                  // with little margin to spare — need every pixel of
-                  // detail the decoder can get on the code itself; handing
-                  // it the whole frame means it wastes resolution on
-                  // background the user was never going to align there.
-                  scanWindow: guideRect,
+                child: ValueListenableBuilder<ZxingCameraValue>(
+                  valueListenable: _controller,
+                  builder: (context, value, _) {
+                    final rawController = _controller.rawController;
+                    if (!value.isInitialized || rawController == null) {
+                      return const SizedBox.expand();
+                    }
+                    return FittedBox(
+                      fit: BoxFit.cover,
+                      clipBehavior: Clip.hardEdge,
+                      child: SizedBox(
+                        width: rawController.value.previewSize?.height ?? size.width,
+                        height: rawController.value.previewSize?.width ?? size.height,
+                        child: CameraPreview(rawController),
+                      ),
+                    );
+                  },
                 ),
               ),
               IgnorePointer(
@@ -221,7 +322,7 @@ class _ScannerViewState extends State<ScannerView> {
                       isDetected: _justDetected,
                       isQrDetected:
                           _justDetected &&
-                          _justDetectedFormat == BarcodeFormat.qrCode,
+                          _justDetectedFormat == zxing.Format.qrCode,
                     ),
                   ),
                 ),
@@ -268,14 +369,14 @@ class _ScannerViewState extends State<ScannerView> {
 class TorchButton extends StatelessWidget {
   const TorchButton({super.key, required this.controller});
 
-  final MobileScannerController controller;
+  final ZxingCameraController controller;
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<MobileScannerState>(
+    return ValueListenableBuilder<ZxingCameraValue>(
       valueListenable: controller,
-      builder: (context, state, _) {
-        final isOn = state.torchState == TorchState.on;
+      builder: (context, value, _) {
+        final isOn = value.isTorchOn;
         return InkWell(
           customBorder: const CircleBorder(),
           onTap: () => controller.toggleTorch(),

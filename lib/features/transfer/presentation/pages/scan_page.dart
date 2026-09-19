@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/form/pin_code_input.dart';
 import '../../../../shared/widgets/scanner/scanner_view.dart';
+import '../../../../shared/widgets/scanner/zxing_camera_controller.dart';
 import '../../domain/entities/transfer_basket.dart';
 import '../providers/transfer_provider.dart';
 import '../widgets/scanner/transfer_scanner_controller.dart';
@@ -26,7 +26,7 @@ class ScanPage extends ConsumerStatefulWidget {
 class _ScanPageState extends ConsumerState<ScanPage> {
   // Owned here (instead of letting TransferScannerView create its own) so
   // the torch action in the AppBar can control the same camera session.
-  late final MobileScannerController _controller =
+  late final ZxingCameraController _controller =
       buildTransferScannerController();
 
   TransferBasket? _scannedBasket;

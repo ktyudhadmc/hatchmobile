@@ -1,16 +1,14 @@
-import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
 
-/// Factory untuk membuat [MobileScannerController] dengan konfigurasi
+import '../../../../shared/widgets/scanner/zxing_camera_controller.dart';
+
+/// Factory untuk membuat [ZxingCameraController] dengan konfigurasi
 /// standar Transfer Scanner.
 ///
 /// Dipisah agar konfigurasi kamera mudah diubah tanpa menyentuh UI.
-MobileScannerController buildTransferScannerController() {
-  return MobileScannerController(
-    autoStart: true,
-    autoZoom: true,
-    detectionSpeed: DetectionSpeed.unrestricted,
-    cameraResolution: const Size(1920, 1080),
-    formats: [BarcodeFormat.all],
+ZxingCameraController buildTransferScannerController() {
+  return ZxingCameraController(
+    lensDirection: CameraLensDirection.back,
+    resolution: ResolutionPreset.high,
   );
 }

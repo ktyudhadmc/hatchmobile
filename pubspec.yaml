@@ -48,8 +48,17 @@ dependencies:
   uuid: ^4.5.2
   flutter_svg: ^2.2.3
 
-  # QR / barcode scanning
-  mobile_scanner: ^7.4.2
+  # QR / barcode scanning, entirely on ZXing-cpp (no Google ML Kit) — see
+  # ZxingCameraController and ScannerView for why: ML Kit struggled with
+  # codes that are dense, skewed, or have a logo cut into the center.
+  # Pinned below 2.3.0: that and newer require Dart SDK >=3.11.0, ahead of
+  # this project's ^3.9.2. The API this app uses (DecodeParams, zx.readBarcode,
+  # zx.processCameraImage, Code.isValid/.text) is unchanged between 2.2.1 and
+  # the latest release.
+  flutter_zxing: ^2.2.1
+  # flutter_zxing re-exports only part of package:camera's API — imported
+  # directly for CameraImage/CameraDescription/availableCameras/FlashMode.
+  camera: ^0.10.5+9
 
   # PIN input fields
   pin_code_fields: ^8.0.1
