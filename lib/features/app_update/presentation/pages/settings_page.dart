@@ -6,6 +6,7 @@ import '../providers/app_update_provider.dart';
 import '../providers/install_permission_provider.dart';
 import '../widgets/allow_install_updates_card.dart';
 import '../widgets/app_update_banner.dart';
+import '../widgets/auto_update_toggle.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -51,7 +52,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
           SliverPadding(
             padding: const EdgeInsets.all(20),
             sliver: SliverList.list(
-              children: const [AppUpdateBanner(), AllowInstallUpdatesCard()],
+              children: const [
+                AppUpdateBanner(),
+                AutoUpdateToggle(),
+                AllowInstallUpdatesCard(),
+              ],
             ),
           ),
         ],

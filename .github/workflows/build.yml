@@ -88,7 +88,14 @@ jobs:
         run: |
           VERSION="0.0.0-dev"
           echo "Building $VERSION (build ${{ github.run_number }})"
-          flutter build apk --release --build-name="$VERSION" --build-number="${{ github.run_number }}"
+          # arm64-v8a only: every device this app targets (2018+) is arm64,
+          # and a single ABI keeps the installed APK roughly a third the
+          # size of a universal build (no armeabi-v7a/x86_64 native libs).
+          # Also keeps the in-app updater's "pick the first .apk asset"
+          # logic (AppUpdateModel) valid — it assumes exactly one APK per
+          # release, so don't switch this to --split-per-abi without also
+          # teaching that logic to pick the right split for the device.
+          flutter build apk --release --target-platform android-arm64 --build-name="$VERSION" --build-number="${{ github.run_number }}"
           mv build/app/outputs/flutter-apk/app-release.apk "app-release-${VERSION}.apk"
 
       - uses: actions/upload-artifact@v4
@@ -129,7 +136,8 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           echo "Building $VERSION (build ${{ github.run_number }})"
-          flutter build apk --release --build-name="$VERSION" --build-number="${{ github.run_number }}"
+          # arm64-v8a only — see the build-dev job above for why.
+          flutter build apk --release --target-platform android-arm64 --build-name="$VERSION" --build-number="${{ github.run_number }}"
           mv build/app/outputs/flutter-apk/app-release.apk "app-release-${VERSION}.apk"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "apk_name=app-release-${VERSION}.apk" >> "$GITHUB_OUTPUT"

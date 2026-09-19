@@ -151,6 +151,7 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
               instructionText:
                   'Position the barcode within the frame provided',
               showTorchButton: widget.showTorchButton,
+              enableAutoTorch: false,
             ),
             if (_scanState.isLookingUp) const ScannerLoadingOverlay(),
           ],

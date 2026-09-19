@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -64,7 +64,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         pageBuilder: (context, state) =>
-            const NoTransitionPage(child: LoginPage()),
+            const CupertinoPage(child: LoginPage()),
       ),
       GoRoute(
         path: '/scan',
@@ -84,7 +84,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings',
         pageBuilder: (context, state) =>
-            const NoTransitionPage(child: SettingsPage()),
+            const CupertinoPage(child: SettingsPage()),
       ),
     ],
   );

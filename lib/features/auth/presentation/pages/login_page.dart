@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
@@ -110,12 +109,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         Container(
                           width: 76,
                           height: 76,
-                          padding: const EdgeInsets.all(14),
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: SvgPicture.asset(AssetConstants.logoPeternak),
+                          child: Image.asset(AssetConstants.logoLauncher),
                         ),
                         const SizedBox(height: 16),
                         const Text(
@@ -143,72 +142,80 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   color: Colors.white,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
                 ),
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    24,
-                    12,
-                    24,
-                    24 + MediaQuery.of(context).viewInsets.bottom,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          margin: const EdgeInsets.only(bottom: 20),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
+                child: Column(
+                  children: [
+                    // Fixed — stays put as a bottom-sheet-style handle even
+                    // when the form below scrolls (e.g. keyboard open).
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
                         ),
                       ),
-                      const Text(
-                        'Login',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.fromLTRB(
+                          24,
+                          16,
+                          24,
+                          24 + MediaQuery.of(context).viewInsets.bottom,
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Please enter your credentials to continue',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF7B7B7B),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Form(
-                        key: _formKey,
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            FormTextField(
-                              label: 'Username',
-                              isRequired: true,
-                              controller: _usernameController,
-                              keyboardType: TextInputType.emailAddress,
+                            const Text(
+                              'Login',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            const SizedBox(height: 16),
-                            FormTextField(
-                              label: 'Password',
-                              isRequired: true,
-                              isPassword: true,
-                              controller: _passwordController,
-                              keyboardType: TextInputType.visiblePassword,
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Please enter your credentials to continue',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF7B7B7B),
+                              ),
                             ),
+                            const SizedBox(height: 24),
+                            Form(
+                              key: _formKey,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  FormTextField(
+                                    label: 'Username',
+                                    isRequired: true,
+                                    controller: _usernameController,
+                                    keyboardType: TextInputType.emailAddress,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  FormTextField(
+                                    label: 'Password',
+                                    isRequired: true,
+                                    isPassword: true,
+                                    controller: _passwordController,
+                                    keyboardType: TextInputType.visiblePassword,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 28),
+                            _buildSubmitButton('LOGIN', screenWidth, isSubmitting),
+                            const SizedBox(height: 12),
+                            Center(child: _buildVersionLabel(ref)),
+                            SizedBox(height: screenHeight * 0.02),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 28),
-                      _buildSubmitButton('LOGIN', screenWidth, isSubmitting),
-                      const SizedBox(height: 12),
-                      Center(child: _buildVersionLabel(ref)),
-                      SizedBox(height: screenHeight * 0.02),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),

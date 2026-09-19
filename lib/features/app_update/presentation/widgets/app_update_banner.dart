@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/app_update_info.dart';
 import '../providers/app_update_download_provider.dart';
 import '../providers/app_update_download_state.dart';
 import '../providers/app_update_provider.dart';
+import '../providers/auto_update_provider.dart';
 
 /// Update status card shown on the Settings page — reports the update
 /// check's result (checking / up to date / update available / failed) and,
@@ -24,20 +26,42 @@ class AppUpdateBanner extends ConsumerWidget {
 
     final downloadState = ref.watch(appUpdateDownloadProvider);
 
-    final String title;
-    final String subtitle;
+    // Auto-install as soon as a newer release is found, if the user opted
+    // in via AutoUpdateToggle — skipped while a download is already running
+    // so a refresh mid-download doesn't kick off a second one.
+    ref.listen<AsyncValue<AppUpdateInfo?>>(appUpdateCheckProvider, (
+      previous,
+      next,
+    ) {
+      final info = next.valueOrNull;
+      if (info == null) return;
+      if (!ref.read(autoUpdateEnabledProvider)) return;
+      if (ref.read(appUpdateDownloadProvider).isBusy) return;
+      ref.read(appUpdateDownloadProvider.notifier).downloadAndInstall(info);
+    });
+
+    final List<Widget> textLines;
     if (isChecking) {
-      title = 'Checking for updates…';
-      subtitle = 'Please wait a moment';
+      textLines = const [
+        _TitleText('Checking for updates…'),
+        _SubtitleText('Please wait a moment'),
+      ];
     } else if (hasFailed) {
-      title = 'Update check failed';
-      subtitle = 'Check your internet connection and try again';
+      textLines = const [
+        _TitleText('Update check failed'),
+        _SubtitleText('Check your internet connection and try again'),
+      ];
     } else if (hasUpdate) {
-      title = 'Update available';
-      subtitle = 'Version ${updateInfo.version} is ready to download';
+      textLines = [
+        const _TitleText('Update available'),
+        _SubtitleText('Version ${updateInfo.version} is ready to download'),
+      ];
     } else {
-      title = currentVersion != null ? 'v$currentVersion' : 'Up to date';
-      subtitle = 'You\'re on the latest version';
+      textLines = [
+        const _TitleText(AppConstants.appName),
+        if (currentVersion != null) _VersionText('v$currentVersion'),
+        const _SubtitleText('You\'re on the latest version'),
+      ];
     }
 
     return Container(
@@ -90,24 +114,7 @@ class AppUpdateBanner extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
+                  children: textLines,
                 ),
               ),
             ],
@@ -206,6 +213,65 @@ class _ActionButton extends ConsumerWidget {
         child: const Text(
           'Update',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        ),
+      ),
+    );
+  }
+}
+
+class _TitleText extends StatelessWidget {
+  const _TitleText(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+        fontSize: 14,
+      ),
+    );
+  }
+}
+
+class _VersionText extends StatelessWidget {
+  const _VersionText(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.95),
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+}
+
+class _SubtitleText extends StatelessWidget {
+  const _SubtitleText(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.85),
+          fontSize: 11,
         ),
       ),
     );
