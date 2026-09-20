@@ -13,6 +13,13 @@ class DeviceInfoHelper {
   String appVersion = '';
   String deviceId = '';
 
+  /// True for a pre-release build — i.e. one tagged `vX.Y.Z-rc.N`,
+  /// `-beta.N` or `-snapshot.N` in CI (see .github/workflows/build.yml),
+  /// which becomes this build's versionName via `--build-name`. Gates the
+  /// developer log page (see DevLogPage) so it only ever shows up on a
+  /// build cut from one of those tags, never on a stable release.
+  bool isBeta = false;
+
   bool _initialized = false;
 
   Future<void> init() async {
@@ -20,6 +27,9 @@ class DeviceInfoHelper {
 
     final packageInfo = await PackageInfo.fromPlatform();
     appVersion = '${packageInfo.version}+${packageInfo.buildNumber}';
+    isBeta = RegExp(
+      r'-(rc|beta|snapshot)\.\d+',
+    ).hasMatch(packageInfo.version);
 
     final deviceInfoPlugin = DeviceInfoPlugin();
     try {

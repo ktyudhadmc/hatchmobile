@@ -59,6 +59,50 @@ class HistoryHeaderList extends ConsumerWidget {
   }
 }
 
+/// Received / Partial / Not Received badge next to the transfer code —
+/// lets the list be scanned at a glance without opening each detail sheet.
+class _ReceivedStatusBadge extends StatelessWidget {
+  const _ReceivedStatusBadge({required this.header});
+
+  final TransferHistory header;
+
+  @override
+  Widget build(BuildContext context) {
+    final sent = header.sentbasketCount ?? 0;
+    final received = header.receivedBasketCount ?? 0;
+
+    final String label;
+    final Color color;
+    if (received <= 0) {
+      label = 'Not Received';
+      color = AppTheme.errorColor;
+    } else if (sent > 0 && received >= sent) {
+      label = 'Received';
+      color = AppTheme.successColor;
+    } else {
+      label = 'Partial';
+      color = AppTheme.warningColor;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          fontFamily: AppTheme.fontFamily,
+        ),
+      ),
+    );
+  }
+}
+
 class _Placeholder extends StatelessWidget {
   const _Placeholder({required this.message, required this.icon});
 
@@ -112,12 +156,21 @@ class _HeaderCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    header.transferCode,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontFamily: AppTheme.fontFamily,
-                    ),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          header.transferCode,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontFamily: AppTheme.fontFamily,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      _ReceivedStatusBadge(header: header),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(

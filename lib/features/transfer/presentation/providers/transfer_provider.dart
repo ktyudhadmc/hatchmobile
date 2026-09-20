@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/utils/dev_log.dart';
 import '../../data/repositories/transfer_repository_impl.dart';
 import '../../domain/entities/transfer_basket.dart';
 import '../../domain/entities/transfer_recent/transfer_recent.dart';
@@ -25,7 +26,21 @@ class ScanBasketNotifier extends StateNotifier<AsyncValue<TransferBasket?>> {
 
   Future<void> scan(String code) async {
     state = const AsyncValue.loading();
+    DevLog.instance.add(DevLogTag.api, 'GET basket $code ...');
     state = await AsyncValue.guard(() => _usecase(code));
+    state.when(
+      data: (basket) => DevLog.instance.add(
+        DevLogTag.api,
+        'GET basket $code sukses (${basket?.basketCode ?? 'not found'})',
+        level: DevLogLevel.success,
+      ),
+      error: (error, _) => DevLog.instance.add(
+        DevLogTag.api,
+        'GET basket $code gagal: $error',
+        level: DevLogLevel.error,
+      ),
+      loading: () {},
+    );
   }
 }
 
@@ -97,12 +112,29 @@ class ConfirmReceiveNotifier extends StateNotifier<AsyncValue<void>> {
     required List<({int id, int receivedQuantity})> grades,
   }) async {
     state = const AsyncValue.loading();
+    DevLog.instance.add(
+      DevLogTag.api,
+      'POST confirmReceive basket $transferBasketId ...',
+    );
     state = await AsyncValue.guard(
       () => _usecase(
         transferId: transferId,
         transferBasketId: transferBasketId,
         grades: grades,
       ),
+    );
+    state.when(
+      data: (_) => DevLog.instance.add(
+        DevLogTag.api,
+        'POST confirmReceive basket $transferBasketId sukses',
+        level: DevLogLevel.success,
+      ),
+      error: (error, _) => DevLog.instance.add(
+        DevLogTag.api,
+        'POST confirmReceive basket $transferBasketId gagal: $error',
+        level: DevLogLevel.error,
+      ),
+      loading: () {},
     );
   }
 }
@@ -121,7 +153,24 @@ class CreateReceiveNotifier extends StateNotifier<AsyncValue<void>> {
 
   Future<void> create({required String basketCode}) async {
     state = const AsyncValue.loading();
+    DevLog.instance.add(
+      DevLogTag.api,
+      'POST createReceive basket $basketCode ...',
+    );
     state = await AsyncValue.guard(() => _usecase(basketCode: basketCode));
+    state.when(
+      data: (_) => DevLog.instance.add(
+        DevLogTag.api,
+        'POST createReceive basket $basketCode sukses',
+        level: DevLogLevel.success,
+      ),
+      error: (error, _) => DevLog.instance.add(
+        DevLogTag.api,
+        'POST createReceive basket $basketCode gagal: $error',
+        level: DevLogLevel.error,
+      ),
+      loading: () {},
+    );
   }
 }
 

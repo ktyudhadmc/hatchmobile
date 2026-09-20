@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,7 +12,7 @@ import '../../../transfer/domain/entities/transfer_history/entities.dart';
 /// the list that was tapped, so the summary (code/date/branch/counts)
 /// renders immediately; [detail] is the riwayat-detail API call in flight
 /// for [header.transferCode]'s received baskets.
-class HistoryDetailView extends StatelessWidget {
+class HistoryDetailView extends StatefulWidget {
   const HistoryDetailView({
     super.key,
     required this.header,
@@ -21,6 +23,52 @@ class HistoryDetailView extends StatelessWidget {
   final TransferHistory header;
   final AsyncValue<List<TransferHistoryDetail>> detail;
   final ScrollController? scrollController;
+
+  @override
+  State<HistoryDetailView> createState() => _HistoryDetailViewState();
+}
+
+class _HistoryDetailViewState extends State<HistoryDetailView> {
+  static const _debounceDuration = Duration(milliseconds: 350);
+
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounce;
+
+  bool _isSearchExpanded = false;
+  String _query = '';
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _isSearchExpanded = !_isSearchExpanded;
+      if (!_isSearchExpanded) {
+        _debounce?.cancel();
+        _searchController.clear();
+        _query = '';
+      }
+    });
+  }
+
+  void _onQueryChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(_debounceDuration, () {
+      if (!mounted) return;
+      setState(() => _query = value.trim().toLowerCase());
+    });
+  }
+
+  List<TransferHistoryDetail> _filter(List<TransferHistoryDetail> baskets) {
+    if (_query.isEmpty) return baskets;
+    return baskets
+        .where((basket) => basket.basketCode.toLowerCase().contains(_query))
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,11 +83,73 @@ class HistoryDetailView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _SummaryCard(header: header),
+              _SummaryCard(header: widget.header),
               const SizedBox(height: 16),
-              Text(
-                'List of Basket',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'List of Basket',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      _isSearchExpanded ? Icons.close : Icons.search,
+                      size: 20,
+                      color: AppTheme.primaryColor,
+                    ),
+                    tooltip: _isSearchExpanded ? 'Close search' : 'Search basket',
+                    onPressed: _toggleSearch,
+                  ),
+                ],
+              ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                alignment: Alignment.topCenter,
+                child: _isSearchExpanded
+                    ? Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: _searchController,
+                          builder: (context, value, _) => TextField(
+                            controller: _searchController,
+                            autofocus: true,
+                            onChanged: _onQueryChanged,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontFamily: AppTheme.fontFamily,
+                            ),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              hintText: 'Search basket code...',
+                              hintStyle: const TextStyle(fontSize: 13),
+                              prefixIcon: const Icon(Icons.search, size: 18),
+                              suffixIcon: value.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear, size: 18),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        _onQueryChanged('');
+                                      },
+                                    )
+                                  : null,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                                horizontal: 12,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFD6D6D6),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
               ),
             ],
           ),
@@ -54,11 +164,11 @@ class HistoryDetailView extends StatelessWidget {
             top: false,
             minimum: const EdgeInsets.only(bottom: 16),
             child: ListView(
-              controller: scrollController,
+              controller: widget.scrollController,
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
-                switch (detail) {
+                switch (widget.detail) {
                   AsyncError() => const _Placeholder(
                     message: 'Error loading details',
                     icon: Icons.error_outline,
@@ -68,8 +178,13 @@ class HistoryDetailView extends StatelessWidget {
                       message: 'This transfer is empty',
                       icon: Icons.inventory_2_outlined,
                     ),
+                  AsyncData(value: final baskets) when _filter(baskets).isEmpty =>
+                    const _Placeholder(
+                      message: 'No basket matches your search',
+                      icon: Icons.search_off_rounded,
+                    ),
                   AsyncData(value: final baskets) => Column(
-                    children: baskets
+                    children: _filter(baskets)
                         .map((basket) => _BasketCard(basket: basket))
                         .toList(),
                   ),

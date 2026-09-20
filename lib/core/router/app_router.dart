@@ -8,6 +8,7 @@ import '../../features/auth/presentation/pages/profile_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/pages/welcome_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
+import '../../features/dev/presentation/pages/dev_log_page.dart';
 import '../../features/home/presentation/pages/history_page.dart';
 import '../../features/transfer/presentation/pages/scan_page.dart';
 import '../navigation/app_navigator.dart';
@@ -85,6 +86,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/settings',
         pageBuilder: (context, state) =>
             const CupertinoPage(child: SettingsPage()),
+      ),
+      GoRoute(
+        path: '/dev-log',
+        pageBuilder: (context, state) =>
+            const CupertinoPage(child: DevLogPage()),
       ),
     ],
   );

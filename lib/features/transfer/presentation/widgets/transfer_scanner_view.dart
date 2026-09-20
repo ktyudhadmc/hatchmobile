@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hatchmobile/core/utils/dev_log.dart';
 import 'package:hatchmobile/features/transfer/domain/entities/transfer_basket.dart';
 import 'package:hatchmobile/features/transfer/presentation/providers/transfer_provider.dart';
 import 'package:hatchmobile/features/transfer/presentation/widgets/scanner/scan_result_listener.dart';
@@ -130,6 +131,11 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
   void _onDetect(String code) {
     if (_scanState.isAlreadyScanning(code)) return;
     debugPrint('[TransferScanner] detected raw code: $code');
+    DevLog.instance.add(
+      DevLogTag.scanner,
+      'Barcode terbaca: $code',
+      level: DevLogLevel.success,
+    );
 
     _applyState(_scanState.copyWith(lookupCode: code));
     ref.read(scanBasketProvider.notifier).scan(code);
