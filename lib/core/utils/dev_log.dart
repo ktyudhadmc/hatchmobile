@@ -41,7 +41,7 @@ class DevLogEntry {
 }
 
 /// In-memory log of scanner/API activity, surfaced on the pre-release
-/// build's developer log page (see [DeviceInfoHelper.isBeta]) so field
+/// build's developer log page (see [DeviceInfoHelper.isCanaryBuild]) so field
 /// testers can show a screen instead of describing what happened over chat.
 ///
 /// Kept as a plain [ChangeNotifier] singleton rather than a Riverpod

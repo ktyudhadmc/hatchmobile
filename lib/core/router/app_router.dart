@@ -9,7 +9,9 @@ import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/pages/welcome_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/dev/presentation/pages/dev_log_page.dart';
+import '../../features/home/presentation/pages/history_detail_page.dart';
 import '../../features/home/presentation/pages/history_page.dart';
+import '../../features/transfer/domain/entities/transfer_history/entities.dart';
 import '../../features/transfer/presentation/pages/scan_page.dart';
 import '../navigation/app_navigator.dart';
 
@@ -91,6 +93,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/dev-log',
         pageBuilder: (context, state) =>
             const CupertinoPage(child: DevLogPage()),
+      ),
+      GoRoute(
+        path: '/history-detail',
+        pageBuilder: (context, state) => CupertinoPage(
+          child: HistoryDetailPage(header: state.extra as TransferHistory),
+        ),
       ),
     ],
   );

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/firebase/remote_config/firebase_remote_config_module.dart';
+import '../../../../core/firebase/remote_config/presentation/remote_config_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/device_info_helper.dart';
 import '../../../../core/utils/dialog_helper.dart';
@@ -32,6 +34,11 @@ class ProfilePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).valueOrNull;
     final currentRoute = GoRouterState.of(context).matchedLocation;
+    final showDevLog =
+        DeviceInfoHelper.instance.isCanaryBuild ||
+        ref
+            .watch(remoteConfigServiceProvider)
+            .getBool(RemoteConfigKeys.enableDevLog);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
@@ -53,7 +60,7 @@ class ProfilePage extends ConsumerWidget {
                   label: 'Settings',
                   onTap: () => context.push('/settings'),
                 ),
-                if (DeviceInfoHelper.instance.isBeta)
+                if (showDevLog)
                   _buildMenuItem(
                     icon: Icons.bug_report_outlined,
                     label: 'Developer Log',

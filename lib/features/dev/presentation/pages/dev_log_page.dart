@@ -5,7 +5,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/dev_log.dart';
 
 /// Developer log page — only reachable from pre-release builds (see
-/// [DeviceInfoHelper.isBeta]). Shows scanner detections and API call
+/// [DeviceInfoHelper.isCanaryBuild]). Shows scanner detections and API call
 /// outcomes in real time so field testers can screenshot/share it instead
 /// of describing what happened.
 class DevLogPage extends StatelessWidget {

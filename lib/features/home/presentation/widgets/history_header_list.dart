@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../transfer/domain/entities/transfer_history/entities.dart';
 import '../../../transfer/presentation/providers/transfer_history_provider.dart';
-import 'history_detail_sheet.dart';
 
 /// Sliver form of the history list, meant to sit inside the [CustomScrollView]
 /// that [RefreshableView] builds — so pulling down drags this content with
@@ -52,7 +52,8 @@ class HistoryHeaderList extends ConsumerWidget {
         separatorBuilder: (context, index) => const SizedBox(height: 8),
         itemBuilder: (context, index) => _HeaderCard(
           header: headers[index],
-          onTap: () => showHistoryDetailSheet(context, ref, headers[index]),
+          onTap: () =>
+              context.push('/history-detail', extra: headers[index]),
         ),
       ),
     );

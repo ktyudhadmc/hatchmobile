@@ -3,7 +3,10 @@
 # Versioning:
 #   - Stable release:  tag  vMAJOR.MINOR.PATCH            e.g. v1.2.3
 #   - Testing build:   tag  vMAJOR.MINOR.PATCH-rc.N        e.g. v1.2.3-rc.1
-#                       (also accepts -beta.N / -snapshot.N, same rules)
+#                       (also accepts -alpha.N / -beta.N / -snapshot.N, same
+#                       rules — alpha for internal-device testing, beta for
+#                       wider testers, rc for release-candidate, snapshot for
+#                       ad-hoc builds off a branch)
 #   The tag (minus the leading "v") becomes the APK's versionName.
 #   GITHUB_RUN_NUMBER (an auto-incrementing per-workflow counter) becomes the
 #   versionCode, so every build - stable or pre-release - has a strictly
@@ -11,12 +14,25 @@
 #
 # Requires the following GitHub Actions secrets (Settings > Secrets and
 # variables > Actions):
-#   - GOOGLE_SERVICES_JSON     base64-encoded per-environment Firebase config
-#   - UPLOAD_KEYSTORE_JKS      base64-encoded release signing keystore
+#   - GOOGLE_SERVICES_JSON        base64-encoded per-environment Firebase config
+#   - UPLOAD_KEYSTORE_JKS         base64-encoded release signing keystore
 #   - KEYSTORE_PASSWORD, KEY_PASSWORD, KEY_ALIAS    signing credentials
+#   - FIREBASE_ANDROID_APP_ID     Firebase console > Project settings > this
+#                                 Android app's "App ID" (1:...:android:...)
+#   - FIREBASE_SERVICE_ACCOUNT_JSON   base64-encoded service account key
+#                                 (role: Firebase App Distribution Admin) —
+#                                 used only to push pre-release builds to
+#                                 Firebase App Distribution testers
 #
 # In-app update (lib/features/app_update/) reads this repo's Releases API
 # with no auth — it's public.
+#
+# Pre-release tags (alpha/beta/rc/snapshot) additionally get pushed to
+# Firebase App Distribution testers (see the `distribute` job) — alpha goes
+# to the "alpha-testers" tester group, everything else pre-release to
+# "beta-testers". Both groups must already exist in the Firebase console
+# (App Distribution > Testers & Groups). A stable tag skips this and only
+# goes out via the GitHub Release + in-app updater, as before.
 
 name: build
 
@@ -28,6 +44,7 @@ on:
       - main
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-alpha.[0-9]+"
       - "v[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+"
       - "v[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+"
       - "v[0-9]+.[0-9]+.[0-9]+-snapshot.[0-9]+"
@@ -104,7 +121,7 @@ jobs:
           path: app-release-*.apk
           retention-days: 14
 
-  # Tagged build: vX.Y.Z (stable) or vX.Y.Z-rc.N / -beta.N / -snapshot.N (testing).
+  # Tagged build: vX.Y.Z (stable) or vX.Y.Z-alpha.N / -rc.N / -beta.N / -snapshot.N (testing).
   build-tag:
     if: github.ref_type == 'tag'
     needs: [analyze, test]
@@ -112,6 +129,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       apk_name: ${{ steps.version.outputs.apk_name }}
+      channel: ${{ steps.version.outputs.channel }}
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -142,6 +160,17 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "apk_name=app-release-${VERSION}.apk" >> "$GITHUB_OUTPUT"
 
+          # Same channel parsing as DeviceInfoHelper.buildChannel in the app
+          # itself — keep the two in sync if the tag suffixes ever change.
+          CHANNEL="stable"
+          case "$VERSION" in
+            *-alpha.*) CHANNEL="alpha" ;;
+            *-beta.*) CHANNEL="beta" ;;
+            *-rc.*) CHANNEL="rc" ;;
+            *-snapshot.*) CHANNEL="snapshot" ;;
+          esac
+          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+
       - uses: actions/upload-artifact@v4
         with:
           name: hatchmobile-${{ steps.version.outputs.version }}
@@ -165,4 +194,29 @@ jobs:
           name: hatchmobile ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
           files: ${{ needs.build-tag.outputs.apk_name }}
-          prerelease: ${{ contains(github.ref_name, '-rc.') || contains(github.ref_name, '-beta.') || contains(github.ref_name, '-snapshot.') }}
+          prerelease: ${{ contains(github.ref_name, '-alpha.') || contains(github.ref_name, '-rc.') || contains(github.ref_name, '-beta.') || contains(github.ref_name, '-snapshot.') }}
+
+  # Pushes pre-release builds straight to Firebase App Distribution testers
+  # — alpha to the internal-device group (alpha-testers), everything else
+  # pre-release to the wider group (beta-testers). A stable tag is skipped
+  # here entirely.
+  distribute:
+    needs: build-tag
+    if: needs.build-tag.outputs.channel != 'stable'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: hatchmobile-${{ needs.build-tag.outputs.version }}
+
+      - name: Set up Firebase service account
+        run: echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}" | base64 -d > firebase-service-account.json
+
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          serviceCredentialsFile: firebase-service-account.json
+          groups: ${{ needs.build-tag.outputs.channel == 'alpha' && 'alpha-testers' || 'beta-testers' }}
+          file: ${{ needs.build-tag.outputs.apk_name }}
+          releaseNotes: "hatchmobile ${{ github.ref_name }} (${{ needs.build-tag.outputs.channel }})"
