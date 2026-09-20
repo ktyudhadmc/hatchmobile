@@ -135,6 +135,7 @@ class _TransferScannerViewState extends ConsumerState<TransferScannerView> {
       DevLogTag.scanner,
       'Barcode terbaca: $code',
       level: DevLogLevel.success,
+      source: 'TransferScannerView._onDetect (kamera scan basket)',
     );
 
     _applyState(_scanState.copyWith(lookupCode: code));

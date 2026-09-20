@@ -21,21 +21,33 @@ class DevLogEntry {
     required this.message,
     required this.level,
     required this.timestamp,
+    this.source,
+    this.detail,
   });
 
   final DevLogTag tag;
   final String message;
   final DevLogLevel level;
   final DateTime timestamp;
+
+  /// Where this entry came from (e.g. the widget/method that triggered
+  /// it) — only meaningful for a plain [DevLogLevel.info]/event entry that
+  /// isn't self-explanatory from [message] alone.
+  final String? source;
+
+  /// Extra multi-line payload — e.g. request/response body for an [api]
+  /// entry. Shown expanded under [message] on [DevLogPage].
+  final String? detail;
 }
 
 /// In-memory log of scanner/API activity, surfaced on the pre-release
-/// build's developer log page (see [DeviceInfoHelper.isBeta]) so field testers can show
-/// a screen instead of describing what happened over chat.
+/// build's developer log page (see [DeviceInfoHelper.isBeta]) so field
+/// testers can show a screen instead of describing what happened over chat.
 ///
 /// Kept as a plain [ChangeNotifier] singleton rather than a Riverpod
-/// provider — it needs to be writable from usecases/repositories that don't
-/// have a `WidgetRef`, and it never needs to be overridden in tests.
+/// provider — it needs to be writable from usecases/repositories/Dio
+/// interceptors that don't have a `WidgetRef`, and it never needs to be
+/// overridden in tests.
 class DevLog extends ChangeNotifier {
   DevLog._();
 
@@ -51,6 +63,8 @@ class DevLog extends ChangeNotifier {
     DevLogTag tag,
     String message, {
     DevLogLevel level = DevLogLevel.info,
+    String? source,
+    String? detail,
   }) {
     _entries.add(
       DevLogEntry(
@@ -58,6 +72,8 @@ class DevLog extends ChangeNotifier {
         message: message,
         level: level,
         timestamp: DateTime.now(),
+        source: source,
+        detail: detail,
       ),
     );
     if (_entries.length > _maxEntries) _entries.removeAt(0);

@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/utils/device_info_helper.dart';
+import '../../../../core/utils/dev_log.dart';
 import '../../../../shared/widgets/form/pin_code_input.dart';
 import '../../../../shared/widgets/scanner/scanner_view.dart';
 import '../../domain/entities/transfer_basket.dart';
@@ -166,6 +166,11 @@ class _ScanPageState extends ConsumerState<ScanPage> {
 
     if (code == null || code.length <= 1) return;
 
+    DevLog.instance.add(
+      DevLogTag.scanner,
+      'Kode basket dimasukkan manual: $code',
+      source: 'ScanPage._onMockScan (input manual, bukan kamera)',
+    );
     ref.read(scanBasketProvider.notifier).scan(code);
   }
 
@@ -254,12 +259,6 @@ class _ScanPageState extends ConsumerState<ScanPage> {
         ),
         title: const Text('Scan', style: TextStyle(color: Colors.white)),
         actions: [
-          if (DeviceInfoHelper.instance.isBeta)
-            IconButton(
-              icon: const Icon(Icons.bug_report_outlined),
-              tooltip: 'Developer Log',
-              onPressed: () => context.push('/dev-log'),
-            ),
           TorchButton(controller: _controller),
           const SizedBox(width: 12),
         ],

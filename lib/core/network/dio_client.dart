@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../constants/app_constants.dart';
 import '../errors/app_exception.dart';
+import '../utils/dev_log.dart';
 import '../utils/device_info_helper.dart';
 import 'connectivity_service.dart';
 
@@ -29,6 +32,7 @@ final dioProvider = Provider<Dio>((ref) {
   dio.interceptors.addAll([
     _AuthInterceptor(storage),
     _ErrorInterceptor(connectivity),
+    _DevLogInterceptor(),
     LogInterceptor(requestBody: true, responseBody: true),
   ]);
 
@@ -124,5 +128,76 @@ class _ErrorInterceptor extends Interceptor {
 
   DioException _wrap(DioException err, AppException exception) {
     return err.copyWith(error: exception);
+  }
+}
+
+/// Mirrors every request/response/error into [DevLog] under [DevLogTag.api]
+/// so the developer log page (see DevLogPage) shows exactly what was sent
+/// and what came back, without each usecase having to log it by hand.
+/// Placed after [_ErrorInterceptor] so a failed call's `onError` already
+/// carries the mapped [AppException] message rather than the raw Dio one.
+class _DevLogInterceptor extends Interceptor {
+  static const _maxBodyLength = 800;
+
+  String _label(RequestOptions options) =>
+      '${options.method} ${options.uri.path}';
+
+  String? _encode(Object? data) {
+    if (data == null) return null;
+    try {
+      final pretty = const JsonEncoder.withIndent('  ').convert(data);
+      return pretty.length > _maxBodyLength
+          ? '${pretty.substring(0, _maxBodyLength)}\n...(truncated)'
+          : pretty;
+    } catch (_) {
+      final raw = data.toString();
+      return raw.length > _maxBodyLength
+          ? '${raw.substring(0, _maxBodyLength)}...(truncated)'
+          : raw;
+    }
+  }
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    final parts = [
+      if (options.queryParameters.isNotEmpty)
+        'Query: ${_encode(options.queryParameters)}',
+      if (options.data != null) 'Body: ${_encode(options.data)}',
+    ];
+    DevLog.instance.add(
+      DevLogTag.api,
+      '→ ${_label(options)}',
+      detail: parts.isEmpty ? null : parts.join('\n'),
+    );
+    handler.next(options);
+  }
+
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    DevLog.instance.add(
+      DevLogTag.api,
+      '← ${_label(response.requestOptions)} (${response.statusCode})',
+      level: DevLogLevel.success,
+      detail: _encode(response.data),
+    );
+    handler.next(response);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    final statusCode = err.response?.statusCode;
+    final appError = err.error;
+    final reason = appError is AppException
+        ? appError.message
+        : err.message ?? 'Unknown error';
+
+    DevLog.instance.add(
+      DevLogTag.api,
+      '✕ ${_label(err.requestOptions)} (${statusCode ?? 'no response'})',
+      level: DevLogLevel.error,
+      detail: 'Error: $reason'
+          '${err.response?.data != null ? '\nResponse: ${_encode(err.response?.data)}' : ''}',
+    );
+    handler.next(err);
   }
 }

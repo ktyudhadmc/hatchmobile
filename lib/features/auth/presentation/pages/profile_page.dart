@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/device_info_helper.dart';
 import '../../../../core/utils/dialog_helper.dart';
 import '../../../../core/utils/general_formatter.dart';
 import '../../../../shared/widgets/bottom_bar_navigation.dart';
@@ -52,6 +53,12 @@ class ProfilePage extends ConsumerWidget {
                   label: 'Settings',
                   onTap: () => context.push('/settings'),
                 ),
+                if (DeviceInfoHelper.instance.isBeta)
+                  _buildMenuItem(
+                    icon: Icons.bug_report_outlined,
+                    label: 'Developer Log',
+                    onTap: () => context.push('/dev-log'),
+                  ),
                 _buildMenuItem(
                   icon: Icons.exit_to_app_rounded,
                   label: 'Sign Out',

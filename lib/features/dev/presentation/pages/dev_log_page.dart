@@ -69,24 +69,57 @@ class DevLogPage extends StatelessWidget {
             separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final entry = entries[index];
-              return ListTile(
+              final subtitleParts = [
+                entry.tag.label,
+                _timeFormat.format(entry.timestamp),
+                if (entry.source != null) entry.source!,
+              ];
+
+              final leading = Icon(
+                _iconFor(entry.level),
+                color: _colorFor(entry.level),
+                size: 20,
+              );
+              final title = Text(
+                entry.message,
+                style: const TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 13,
+                ),
+              );
+              final subtitle = Text(
+                subtitleParts.join(' · '),
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              );
+
+              if (entry.detail == null || entry.detail!.isEmpty) {
+                return ListTile(dense: true, leading: leading, title: title, subtitle: subtitle);
+              }
+
+              return ExpansionTile(
                 dense: true,
-                leading: Icon(
-                  _iconFor(entry.level),
-                  color: _colorFor(entry.level),
-                  size: 20,
-                ),
-                title: Text(
-                  entry.message,
-                  style: const TextStyle(
-                    fontFamily: AppTheme.fontFamily,
-                    fontSize: 13,
+                leading: leading,
+                title: title,
+                subtitle: subtitle,
+                childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F8FA),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: SelectableText(
+                      entry.detail!,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
                   ),
-                ),
-                subtitle: Text(
-                  '${entry.tag.label} · ${_timeFormat.format(entry.timestamp)}',
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                ),
+                ],
               );
             },
           );
