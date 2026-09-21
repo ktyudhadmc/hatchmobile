@@ -1,3 +1,4 @@
+import '../../constants/app_constants.dart';
 import '../firebase_module.dart';
 import 'data/firebase_remote_config_service.dart';
 
@@ -9,6 +10,12 @@ abstract final class RemoteConfigKeys {
   /// scanner/API logging on a *stable* build already in someone's hand —
   /// to chase down a report — without shipping a new APK.
   static const enableDevLog = 'enable_dev_log';
+
+  /// Which host (`"github"` or `"gitlab"`) the in-app updater reads
+  /// Releases from — see [UpdateSource.fromRemoteConfigValue]. Lets that
+  /// host be switched (e.g. GitHub rate-limited, migrating to GitLab)
+  /// without shipping a new build.
+  static const appUpdateSource = 'app_update_source';
 }
 
 class FirebaseRemoteConfigModule implements FirebaseModule {
@@ -18,6 +25,9 @@ class FirebaseRemoteConfigModule implements FirebaseModule {
 
   @override
   Future<void> initialize() => _service.initialize(
-    defaults: const {RemoteConfigKeys.enableDevLog: false},
+    defaults: {
+      RemoteConfigKeys.enableDevLog: false,
+      RemoteConfigKeys.appUpdateSource: AppConstants.updateSource.name,
+    },
   );
 }

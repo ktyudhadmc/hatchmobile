@@ -1,217 +1,275 @@
-# # Android build-only pipeline (no Play Store publishing yet).
-# #
-# # Versioning:
-# #   - Stable release:  tag  vMAJOR.MINOR.PATCH            e.g. v1.2.3
-# #   - Testing build:   tag  vMAJOR.MINOR.PATCH-rc.N        e.g. v1.2.3-rc.1
-# #                       (also accepts -beta.N / -snapshot.N, same rules)
-# #   The tag (minus the leading "v") becomes the APK's versionName.
-# #   CI_PIPELINE_IID (an auto-incrementing per-project counter) becomes the
-# #   versionCode, so every build - stable or pre-release - has a strictly
-# #   increasing build number as Android requires.
-# #
-# # Requires the following GitLab Secure Files (Settings > CI/CD > Secure
-# # Files); the download-secure-files tool below fetches them into
-# # .secure_files/ during the build job:
-# #   - google-services.json     per-environment Firebase config
-# #   - upload-keystore.jks      release signing keystore
-# # Signing also needs these masked CI/CD variables (Settings > CI/CD >
-# # Variables): KEYSTORE_PASSWORD, KEY_PASSWORD, KEY_ALIAS.
-# #
-# # In-app update (lib/features/app_update/) reads this project's Releases API
-# # with no auth — it's public with Releases set to "Everyone With Access".
+# Android build-only pipeline (no Play Store publishing yet).
+#
+# Versioning:
+#   - Stable release:  tag  vMAJOR.MINOR.PATCH            e.g. v1.2.3
+#   - Testing build:   tag  vMAJOR.MINOR.PATCH-rc.N        e.g. v1.2.3-rc.1
+#                       (also accepts -alpha.N / -beta.N / -snapshot.N, same
+#                       rules — alpha for internal-device testing, beta for
+#                       wider testers, rc for release-candidate, snapshot for
+#                       ad-hoc builds off a branch)
+#   The tag (minus the leading "v") becomes the APK's versionName.
+#   CI_PIPELINE_IID (an auto-incrementing per-project counter) becomes the
+#   versionCode, so every build - stable or pre-release - has a strictly
+#   increasing build number as Android requires.
+#
+# Requires the following GitLab Secure Files (Settings > CI/CD > Secure
+# Files); the download-secure-files tool below fetches them into
+# .secure_files/ during the relevant job:
+#   - google-services.json            per-environment Firebase config
+#   - upload-keystore.jks             release signing keystore
+#   - firebase-service-account.json   service account key (Firebase console >
+#                                      Project settings > Service accounts >
+#                                      Generate new private key) — used by
+#                                      the `distribute` job below
+# Signing also needs these masked CI/CD variables (Settings > CI/CD >
+# Variables): KEYSTORE_PASSWORD, KEY_PASSWORD, KEY_ALIAS.
+#
+# In-app update (lib/features/app_update/) reads this project's Releases API
+# with no auth — it's public with Releases set to "Everyone With Access".
+#
+# Pre-release tags (alpha/beta/rc/snapshot) additionally get pushed to
+# Firebase App Distribution testers (see the `distribute` job) — alpha goes
+# to the "alpha-testers" tester group, everything else pre-release to
+# "beta-testers". Both groups must already exist in the Firebase console
+# (App Distribution > Testers & Groups) — same ones used by build.yml on the
+# GitHub side, kept in sync so it doesn't matter which host a build shipped
+# from. Also requires one masked CI/CD variable:
+#   - FIREBASE_ANDROID_APP_ID   Firebase console > Project settings > this
+#                                Android app's "App ID" (1:...:android:...)
+# A stable tag skips this and only goes out via the GitLab Release + in-app
+# updater, as before.
 
-# stages:
-#   - analyze
-#   - test
-#   - build
-#   - release
+stages:
+  - analyze
+  - test
+  - build
+  - release
 
-# # Pin an exact Flutter version for reproducible builds; bump deliberately.
-# image: ghcr.io/cirruslabs/flutter:3.35.5
+# Pin an exact Flutter version for reproducible builds; bump deliberately.
+image: ghcr.io/cirruslabs/flutter:3.35.5
 
-# variables:
-#   PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
+variables:
+  PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
 
-# .tag_semver_rules: &tag_semver_rules
-#   - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
-#   - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-(rc|beta|snapshot)\.\d+$/
+.tag_semver_rules: &tag_semver_rules
+  - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+  - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-(alpha|rc|beta|snapshot)\.\d+$/
 
-# .mr_and_branch_rules: &mr_and_branch_rules
-#   - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-#   - if: $CI_COMMIT_BRANCH == "develop"
-#   - if: $CI_COMMIT_BRANCH == "main"
+# Pre-release tags only — used by the `distribute` job, which (unlike
+# `release`) has nothing useful to do for a stable tag.
+.tag_prerelease_rules: &tag_prerelease_rules
+  - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-(alpha|rc|beta|snapshot)\.\d+$/
 
-# cache:
-#   key:
-#     files:
-#       - pubspec.lock
-#   paths:
-#     - .pub-cache/
+.mr_and_branch_rules: &mr_and_branch_rules
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  - if: $CI_COMMIT_BRANCH == "develop"
+  - if: $CI_COMMIT_BRANCH == "main"
 
-# before_script:
-#   - flutter pub get
+cache:
+  key:
+    files:
+      - pubspec.lock
+  paths:
+    - .pub-cache/
 
-# analyze:
-#   tags:
-#     - developerdmc-runner
-#   stage: analyze
-#   script:
-#     - flutter analyze
-#   rules:
-#     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-#     - if: $CI_COMMIT_BRANCH == "develop"
-#     - if: $CI_COMMIT_BRANCH == "main"
-#     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
-#     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-(rc|beta|snapshot)\.\d+$/
+before_script:
+  - flutter pub get
 
-# test:
-#   stage: test
-#   tags:
-#     - developerdmc-runner
-#   script:
-#     - flutter test
-#   rules:
-#     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-#     - if: $CI_COMMIT_BRANCH == "develop"
-#     - if: $CI_COMMIT_BRANCH == "main"
-#     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
-#     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-(rc|beta|snapshot)\.\d+$/
+analyze:
+  tags:
+    - developerdmc-runner
+  stage: analyze
+  script:
+    - flutter analyze
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-(alpha|rc|beta|snapshot)\.\d+$/
 
-# # Ad-hoc APK for a merge request / branch push, not versioned by a tag.
-# # Useful to grab a build for manual testing without cutting a release tag.
-# build:dev:
-#   stage: build
-#   tags:
-#     - developerdmc-runner
-#   # cmake/NDK aren't baked into the Flutter image and get downloaded from
-#   # Google's SDK server on demand — cache them so repeat runs don't re-fetch,
-#   # and retry the job in case a download gets corrupted mid-transfer (seen as
-#   # "Archive is not a ZIP archive" on configureCMakeRelease).
-#   cache:
-#     - key:
-#         files:
-#           - pubspec.lock
-#       paths:
-#         - .pub-cache/
-#     - key: android-sdk-cmake-ndk
-#       paths:
-#         - /opt/android-sdk-linux/cmake
-#         - /opt/android-sdk-linux/ndk
-#   retry: 2
-#   script:
-#     - curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
-#     - cp .secure_files/google-services.json android/app/google-services.json
+test:
+  stage: test
+  tags:
+    - developerdmc-runner
+  script:
+    - flutter test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-(alpha|rc|beta|snapshot)\.\d+$/
 
-#     # Setup keystore dari GitLab Secure File
-#     - cp .secure_files/upload-keystore.jks android/app/upload-keystore.jks
-#     # printf with quoted vars writes the secrets literally — an unquoted
-#     # heredoc lets the shell interpret $, `, and \ inside the password,
-#     # silently corrupting it and causing a "tampered with, or password was
-#     # incorrect" signing failure.
-#     - |
-#       printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=upload-keystore.jks\n' \
-#         "${KEYSTORE_PASSWORD}" "${KEY_PASSWORD}" "${KEY_ALIAS}" > android/app/key.properties
+# Ad-hoc APK for a merge request / branch push, not versioned by a tag.
+# Useful to grab a build for manual testing without cutting a release tag.
+build:dev:
+  stage: build
+  tags:
+    - developerdmc-runner
+  # cmake/NDK aren't baked into the Flutter image and get downloaded from
+  # Google's SDK server on demand — cache them so repeat runs don't re-fetch,
+  # and retry the job in case a download gets corrupted mid-transfer (seen as
+  # "Archive is not a ZIP archive" on configureCMakeRelease).
+  cache:
+    - key:
+        files:
+          - pubspec.lock
+      paths:
+        - .pub-cache/
+    - key: android-sdk-cmake-ndk
+      paths:
+        - /opt/android-sdk-linux/cmake
+        - /opt/android-sdk-linux/ndk
+  retry: 2
+  script:
+    - curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
+    - cp .secure_files/google-services.json android/app/google-services.json
 
-#     # Fail fast (seconds, not the ~15min it takes Gradle to get here) with a
-#     # clear message if KEYSTORE_PASSWORD/KEY_ALIAS don't actually match
-#     # upload-keystore.jks, instead of Gradle's opaque "tampered with, or
-#     # password was incorrect". Does not print the password.
-#     - |
-#       echo "Verifying keystore credentials before building..."
-#       keytool -list -keystore android/app/upload-keystore.jks \
-#         -storepass "${KEYSTORE_PASSWORD}" -alias "${KEY_ALIAS}" > /dev/null \
-#         || { echo "Keystore verification failed: KEYSTORE_PASSWORD and/or KEY_ALIAS do not match android/app/upload-keystore.jks. Check Settings > CI/CD > Variables (and that they are of type 'Variable', not 'File') and Settings > CI/CD > Secure Files."; exit 1; }
+    # Setup keystore dari GitLab Secure File
+    - cp .secure_files/upload-keystore.jks android/app/upload-keystore.jks
+    # printf with quoted vars writes the secrets literally — an unquoted
+    # heredoc lets the shell interpret $, `, and \ inside the password,
+    # silently corrupting it and causing a "tampered with, or password was
+    # incorrect" signing failure.
+    - |
+      printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=upload-keystore.jks\n' \
+        "${KEYSTORE_PASSWORD}" "${KEY_PASSWORD}" "${KEY_ALIAS}" > android/app/key.properties
 
-#     - VERSION="${CI_COMMIT_TAG#v}"
-#     - echo "Building $VERSION (build ${CI_PIPELINE_IID})"
-#     - flutter build apk --release --build-name="$VERSION" --build-number="$CI_PIPELINE_IID"
-#     - mv build/app/outputs/flutter-apk/app-release.apk "app-release-${VERSION}.apk"
-#   artifacts:
-#     name: "hatchmobile-$VERSION"
-#     paths:
-#       - build/app/outputs/flutter-apk/app-release.apk
-#     expire_in: 2 weeks
-#   rules: *mr_and_branch_rules
+    # Fail fast (seconds, not the ~15min it takes Gradle to get here) with a
+    # clear message if KEYSTORE_PASSWORD/KEY_ALIAS don't actually match
+    # upload-keystore.jks, instead of Gradle's opaque "tampered with, or
+    # password was incorrect". Does not print the password.
+    - |
+      echo "Verifying keystore credentials before building..."
+      keytool -list -keystore android/app/upload-keystore.jks \
+        -storepass "${KEYSTORE_PASSWORD}" -alias "${KEY_ALIAS}" > /dev/null \
+        || { echo "Keystore verification failed: KEYSTORE_PASSWORD and/or KEY_ALIAS do not match android/app/upload-keystore.jks. Check Settings > CI/CD > Variables (and that they are of type 'Variable', not 'File') and Settings > CI/CD > Secure Files."; exit 1; }
 
-# # Tagged build: vX.Y.Z (stable) or vX.Y.Z-rc.N / -beta.N / -snapshot.N (testing).
-# build:tag:
-#   stage: build
-#   tags:
-#     - developerdmc-runner
-#   # cmake/NDK aren't baked into the Flutter image and get downloaded from
-#   # Google's SDK server on demand — cache them so repeat runs don't re-fetch,
-#   # and retry the job in case a download gets corrupted mid-transfer (seen as
-#   # "Archive is not a ZIP archive" on configureCMakeRelease).
-#   cache:
-#     - key:
-#         files:
-#           - pubspec.lock
-#       paths:
-#         - .pub-cache/
-#     - key: android-sdk-cmake-ndk
-#       paths:
-#         - /opt/android-sdk-linux/cmake
-#         - /opt/android-sdk-linux/ndk
-#   retry: 2
-#   script:
-#     - curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
-#     - cp .secure_files/google-services.json android/app/google-services.json
+    - VERSION="0.0.0-dev"
+    - echo "Building $VERSION (build ${CI_PIPELINE_IID})"
+    - flutter build apk --release --build-name="$VERSION" --build-number="$CI_PIPELINE_IID"
+    - mv build/app/outputs/flutter-apk/app-release.apk "app-release-${VERSION}.apk"
+  artifacts:
+    name: "hatchmobile-$VERSION"
+    paths:
+      - build/app/outputs/flutter-apk/app-release.apk
+    expire_in: 2 weeks
+  rules: *mr_and_branch_rules
 
-#     # Setup keystore dari GitLab Secure File
-#     - cp .secure_files/upload-keystore.jks android/app/upload-keystore.jks
-#     # printf with quoted vars writes the secrets literally — an unquoted
-#     # heredoc lets the shell interpret $, `, and \ inside the password,
-#     # silently corrupting it and causing a "tampered with, or password was
-#     # incorrect" signing failure.
-#     - |
-#       printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=upload-keystore.jks\n' \
-#         "${KEYSTORE_PASSWORD}" "${KEY_PASSWORD}" "${KEY_ALIAS}" > android/app/key.properties
+# Tagged build: vX.Y.Z (stable) or vX.Y.Z-alpha.N / -rc.N / -beta.N / -snapshot.N (testing).
+build:tag:
+  stage: build
+  tags:
+    - developerdmc-runner
+  # cmake/NDK aren't baked into the Flutter image and get downloaded from
+  # Google's SDK server on demand — cache them so repeat runs don't re-fetch,
+  # and retry the job in case a download gets corrupted mid-transfer (seen as
+  # "Archive is not a ZIP archive" on configureCMakeRelease).
+  cache:
+    - key:
+        files:
+          - pubspec.lock
+      paths:
+        - .pub-cache/
+    - key: android-sdk-cmake-ndk
+      paths:
+        - /opt/android-sdk-linux/cmake
+        - /opt/android-sdk-linux/ndk
+  retry: 2
+  script:
+    - curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
+    - cp .secure_files/google-services.json android/app/google-services.json
 
-#     # Fail fast (seconds, not the ~15min it takes Gradle to get here) with a
-#     # clear message if KEYSTORE_PASSWORD/KEY_ALIAS don't actually match
-#     # upload-keystore.jks, instead of Gradle's opaque "tampered with, or
-#     # password was incorrect". Does not print the password.
-#     - |
-#       echo "Verifying keystore credentials before building..."
-#       keytool -list -keystore android/app/upload-keystore.jks \
-#         -storepass "${KEYSTORE_PASSWORD}" -alias "${KEY_ALIAS}" > /dev/null \
-#         || { echo "Keystore verification failed: KEYSTORE_PASSWORD and/or KEY_ALIAS do not match android/app/upload-keystore.jks. Check Settings > CI/CD > Variables (and that they are of type 'Variable', not 'File') and Settings > CI/CD > Secure Files."; exit 1; }
+    # Setup keystore dari GitLab Secure File
+    - cp .secure_files/upload-keystore.jks android/app/upload-keystore.jks
+    # printf with quoted vars writes the secrets literally — an unquoted
+    # heredoc lets the shell interpret $, `, and \ inside the password,
+    # silently corrupting it and causing a "tampered with, or password was
+    # incorrect" signing failure.
+    - |
+      printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=upload-keystore.jks\n' \
+        "${KEYSTORE_PASSWORD}" "${KEY_PASSWORD}" "${KEY_ALIAS}" > android/app/key.properties
 
-#     - VERSION="${CI_COMMIT_TAG#v}"
-#     - echo "Building $VERSION (build ${CI_PIPELINE_IID})"
-#     - flutter build apk --release --build-name="$VERSION" --build-number="$CI_PIPELINE_IID"
-#     - mv build/app/outputs/flutter-apk/app-release.apk "app-release-${VERSION}.apk"
-#   artifacts:
-#     name: "hatchmobile-$VERSION"
-#     paths:
-#       - app-release-*.apk
-#     expire_in: never
-#   rules: *tag_semver_rules
+    # Fail fast (seconds, not the ~15min it takes Gradle to get here) with a
+    # clear message if KEYSTORE_PASSWORD/KEY_ALIAS don't actually match
+    # upload-keystore.jks, instead of Gradle's opaque "tampered with, or
+    # password was incorrect". Does not print the password.
+    - |
+      echo "Verifying keystore credentials before building..."
+      keytool -list -keystore android/app/upload-keystore.jks \
+        -storepass "${KEYSTORE_PASSWORD}" -alias "${KEY_ALIAS}" > /dev/null \
+        || { echo "Keystore verification failed: KEYSTORE_PASSWORD and/or KEY_ALIAS do not match android/app/upload-keystore.jks. Check Settings > CI/CD > Variables (and that they are of type 'Variable', not 'File') and Settings > CI/CD > Secure Files."; exit 1; }
 
-# # Publishes the tagged APK to the project's Generic Package Registry, then
-# # creates a GitLab Release pointing at it. Runs after build:tag so the APK
-# # artifact from that job is available here.
-# release:
-#   stage: release
-#   tags:
-#     - developerdmc-runner
-#   image: registry.gitlab.com/gitlab-org/release-cli:latest
-#   needs:
-#     - job: build:tag
-#       artifacts: true
-#   before_script:
-#     - apk add --no-cache curl
-#   script:
-#     - VERSION="${CI_COMMIT_TAG#v}"
-#     - APK="app-release-${VERSION}.apk"
-#     - PACKAGE_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/hatchmobile/${VERSION}/${APK}"
-#     - |
-#       curl --fail --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
-#         --upload-file "${APK}" \
-#         "${PACKAGE_URL}"
-#     - |
-#       release-cli create \
-#         --name "hatchmobile ${CI_COMMIT_TAG}" \
-#         --tag-name "${CI_COMMIT_TAG}" \
-#         --assets-link "{\"name\":\"${APK}\",\"url\":\"${PACKAGE_URL}\"}"
-#   rules: *tag_semver_rules
+    - VERSION="${CI_COMMIT_TAG#v}"
+    - echo "Building $VERSION (build ${CI_PIPELINE_IID})"
+    - flutter build apk --release --build-name="$VERSION" --build-number="$CI_PIPELINE_IID"
+    - mv build/app/outputs/flutter-apk/app-release.apk "app-release-${VERSION}.apk"
+  artifacts:
+    name: "hatchmobile-$VERSION"
+    paths:
+      - app-release-*.apk
+    expire_in: never
+  rules: *tag_semver_rules
+
+# Publishes the tagged APK to the project's Generic Package Registry, then
+# creates a GitLab Release pointing at it. Runs after build:tag so the APK
+# artifact from that job is available here.
+release:
+  stage: release
+  tags:
+    - developerdmc-runner
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: build:tag
+      artifacts: true
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - VERSION="${CI_COMMIT_TAG#v}"
+    - APK="app-release-${VERSION}.apk"
+    - PACKAGE_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/hatchmobile/${VERSION}/${APK}"
+    - |
+      curl --fail --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+        --upload-file "${APK}" \
+        "${PACKAGE_URL}"
+    - |
+      release-cli create \
+        --name "hatchmobile ${CI_COMMIT_TAG}" \
+        --tag-name "${CI_COMMIT_TAG}" \
+        --assets-link "{\"name\":\"${APK}\",\"url\":\"${PACKAGE_URL}\"}"
+  rules: *tag_semver_rules
+
+# Pushes pre-release builds straight to Firebase App Distribution testers —
+# alpha to the internal-device group (alpha-testers), everything else
+# pre-release to the wider group (beta-testers). Mirrors the `distribute`
+# job in build.yml (GitHub Actions) so it doesn't matter which host a given
+# tag was pushed to. Runs in a Node image (not the Flutter one) since it
+# only needs firebase-tools, not the Flutter SDK.
+distribute:
+  stage: release
+  image: node:20-alpine
+  tags:
+    - developerdmc-runner
+  needs:
+    - job: build:tag
+      artifacts: true
+  before_script:
+    - apk add --no-cache bash curl
+    - npm install -g firebase-tools
+  script:
+    - curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
+    - export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/.secure_files/firebase-service-account.json"
+    - VERSION="${CI_COMMIT_TAG#v}"
+    - APK="app-release-${VERSION}.apk"
+    - |
+      case "$VERSION" in
+        *-alpha.*) GROUP="alpha-testers" ;;
+        *) GROUP="beta-testers" ;;
+      esac
+    - |
+      firebase appdistribution:distribute "$APK" \
+        --app "$FIREBASE_ANDROID_APP_ID" \
+        --groups "$GROUP" \
+        --release-notes "hatchmobile ${CI_COMMIT_TAG}"
+  rules: *tag_prerelease_rules
