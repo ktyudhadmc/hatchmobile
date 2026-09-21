@@ -1,4 +1,4 @@
-/// Per-basket received status, checkable in [HistoryBasketFilterSheet].
+/// Per-basket received status, checkable in [HistoryBasketFilterPage].
 enum BasketStatusFilter {
   received('Received'),
   notReceived('Not Received');

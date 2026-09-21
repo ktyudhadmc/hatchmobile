@@ -152,23 +152,48 @@ class _ActionButton extends ConsumerWidget {
     if (isChecking) return const SizedBox.shrink();
 
     if (state.isBusy) {
-      return SizedBox(
-        height: 32,
-        child: Center(
-          child: SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.5,
-              color: Colors.white,
-              value:
-                  state.status == AppUpdateDownloadStatus.downloading &&
-                      state.progress > 0
-                  ? state.progress
-                  : null,
+      final isDownloading = state.status == AppUpdateDownloadStatus.downloading;
+      final knownProgress = isDownloading && state.progress > 0
+          ? state.progress
+          : null;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                isDownloading ? 'Downloading…' : 'Installing…',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (knownProgress != null)
+                Text(
+                  '${(knownProgress * 100).round()}%',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              minHeight: 6,
+              value: knownProgress,
+              backgroundColor: Colors.white.withValues(alpha: 0.25),
+              valueColor: const AlwaysStoppedAnimation(Colors.white),
             ),
           ),
-        ),
+        ],
       );
     }
 

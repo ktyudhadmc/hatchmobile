@@ -7,7 +7,7 @@ import '../../../transfer/domain/entities/transfer_grade.dart';
 import '../../../transfer/domain/entities/transfer_history/entities.dart';
 import '../../../transfer/presentation/providers/transfer_history_provider.dart';
 import '../widgets/history_basket_filter.dart';
-import '../widgets/history_basket_filter_sheet.dart';
+import 'history_basket_filter_page.dart';
 
 /// Full-page Riwayat detail — a "balance + transaction history" layout
 /// (à la a banking app's saldo page): [header]'s summary pinned at the top
@@ -24,36 +24,76 @@ class HistoryDetailPage extends ConsumerStatefulWidget {
 }
 
 class _HistoryDetailPageState extends ConsumerState<HistoryDetailPage> {
-  static const double _sheetMinSize = 0.4;
-  static const double _sheetInitialSize = 0.62;
-  static const double _sheetMaxSize = 0.94;
+  final _sheetController = DraggableScrollableController();
 
   HistoryBasketFilter _filter = const HistoryBasketFilter();
 
   @override
   void initState() {
     super.initState();
-    ref.read(selectedTransferCodeProvider.notifier).state =
-        widget.header.transferCode;
-    ref.read(historyDetailProvider.notifier).load(widget.header.transferCode);
+    // Deferred to after the first frame: writing to a provider's .state
+    // synchronously inside initState happens while the widget tree is
+    // still building, which Riverpod disallows (other widgets watching
+    // the same provider could rebuild mid-build with inconsistent state).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(selectedTransferCodeProvider.notifier).state =
+          widget.header.transferCode;
+      ref.read(historyDetailProvider.notifier).load(widget.header.transferCode);
+    });
   }
 
-  Future<void> _openFilterSheet() async {
-    final result = await HistoryBasketFilterSheet.show(
+  @override
+  void dispose() {
+    _sheetController.dispose();
+    super.dispose();
+  }
+
+  /// Drives the sheet by hand from a drag on the handle bar / header —
+  /// that area sits outside the sheet's scrollable content, so it isn't
+  /// wired into DraggableScrollableSheet's own drag-to-resize by default.
+  void _onHandleDragUpdate(DragUpdateDetails details, double screenHeight) {
+    final next = _sheetController.size - details.primaryDelta! / screenHeight;
+    _sheetController.jumpTo(next.clamp(0.0, 1.0));
+  }
+
+  /// Snaps to whichever end (min/max) the sheet is closer to on release —
+  /// mirrors DraggableScrollableSheet's own `snap: true` behavior, which
+  /// only applies to drags that originate on its scrollable content.
+  void _onHandleDragEnd(
+    DragEndDetails details,
+    double minSize,
+    double maxSize,
+  ) {
+    final mid = (minSize + maxSize) / 2;
+    final target = _sheetController.size >= mid ? maxSize : minSize;
+    _sheetController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+    );
+  }
+
+  Future<void> _openFilterPage() async {
+    final result = await HistoryBasketFilterPage.show(
       context,
       initialFilter: _filter,
     );
     if (result != null) setState(() => _filter = result);
   }
 
-  List<TransferHistoryDetail> _applyFilter(List<TransferHistoryDetail> baskets) {
+  List<TransferHistoryDetail> _applyFilter(
+    List<TransferHistoryDetail> baskets,
+  ) {
     var filtered = baskets;
 
     if (_filter.statuses.isNotEmpty) {
       filtered = filtered.where((basket) {
         final isReceived = basket.receivedAt != null;
         return _filter.statuses.contains(
-          isReceived ? BasketStatusFilter.received : BasketStatusFilter.notReceived,
+          isReceived
+              ? BasketStatusFilter.received
+              : BasketStatusFilter.notReceived,
         );
       }).toList();
     }
@@ -71,6 +111,16 @@ class _HistoryDetailPageState extends ConsumerState<HistoryDetailPage> {
   @override
   Widget build(BuildContext context) {
     final detail = ref.watch(historyDetailProvider);
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Cap the sheet's drag-up at just below the AppBar, instead of nearly
+    // covering it — the AppBar (back button/title) must stay reachable.
+    final appBarReservedHeight =
+        MediaQuery.of(context).padding.top + kToolbarHeight;
+
+    final minSize = appBarReservedHeight + _BalanceCard.minVisibleHeight;
+    final sheetMaxSize = 1 - (appBarReservedHeight / screenHeight);
+    final sheetMinSize = 1 - (minSize / screenHeight);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -78,22 +128,21 @@ class _HistoryDetailPageState extends ConsumerState<HistoryDetailPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Detail Transfer', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Detail Transfer',
+          style: TextStyle(color: Colors.white),
+        ),
       ),
       body: Stack(
         children: [
           _BalanceCard(header: widget.header),
           Positioned.fill(
             child: DraggableScrollableSheet(
-              initialChildSize: _sheetInitialSize,
-              minChildSize: _sheetMinSize,
-              maxChildSize: _sheetMaxSize,
+              controller: _sheetController,
+              initialChildSize: sheetMinSize,
+              minChildSize: sheetMinSize,
+              maxChildSize: sheetMaxSize,
               snap: true,
-              // min/maxChildSize are already implicit snap points — listing
-              // them again in snapSizes trips DraggableScrollableSheet's
-              // "no duplicates of min/max" assertion, so only the initial
-              // (middle) size goes here.
-              snapSizes: const [_sheetInitialSize],
               builder: (context, scrollController) {
                 return _BasketSheet(
                   detail: detail,
@@ -102,8 +151,12 @@ class _HistoryDetailPageState extends ConsumerState<HistoryDetailPage> {
                     AsyncData(value: final baskets) => _applyFilter(baskets),
                     _ => const [],
                   },
-                  onSearchTap: _openFilterSheet,
+                  onSearchTap: _openFilterPage,
                   scrollController: scrollController,
+                  onHandleDragUpdate: (details) =>
+                      _onHandleDragUpdate(details, screenHeight),
+                  onHandleDragEnd: (details) =>
+                      _onHandleDragEnd(details, sheetMinSize, sheetMaxSize),
                 );
               },
             ),
@@ -115,12 +168,43 @@ class _HistoryDetailPageState extends ConsumerState<HistoryDetailPage> {
 }
 
 /// The "saldo" card — colored, pinned behind the draggable sheet, showing
-/// the transfer's summary (code/date/branch/shipped/received) the way a
-/// banking app shows the balance behind its transaction list.
+/// the transfer's summary the way a banking app shows the balance behind
+/// its transaction list.
+///
+/// Laid out as a 2×2 grid, everything left-aligned: Transfer Date sits
+/// above Shipped in the left column, Branch sits above Received in the
+/// right column.
 class _BalanceCard extends StatelessWidget {
   const _BalanceCard({required this.header});
 
   final TransferHistory header;
+
+  /// Content height below the AppBar, from the card's own top padding down
+  /// past the Shipped/Received row (plus [_trailingGap]/[_adjustmentHeight]
+  /// slack) — i.e. everything [HistoryDetailPage] needs to keep visible
+  /// when the sheet is collapsed to its minimum. Approximate (text
+  /// line-heights aren't measured), but close enough that the collapsed
+  /// sheet snaps in right under the grid instead of clipping it.
+  static const double minVisibleHeight =
+      _topGap +
+      _codeLineHeight +
+      _gapAfterCode +
+      _gridRowHeight +
+      _gapBetweenGridRows +
+      _gridRowHeight +
+      _trailingGap +
+      _adjustmentHeight;
+
+  static const double _topGap = 4;
+  static const double _codeLineHeight = 26; // fontSize 20, bold
+  static const double _gapAfterCode = 16;
+  // label(12) + gap(4) + value — shared by both grid rows even though the
+  // second row's value is bigger (24 vs 16), so this stays a slight
+  // over-estimate rather than needing two separate constants.
+  static const double _gridRowHeight = 50;
+  static const double _gapBetweenGridRows = 8;
+  static const double _trailingGap = 20;
+  static const double _adjustmentHeight = 64;
 
   @override
   Widget build(BuildContext context) {
@@ -128,7 +212,7 @@ class _BalanceCard extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(
         20,
-        MediaQuery.of(context).padding.top + kToolbarHeight + 4,
+        MediaQuery.of(context).padding.top + kToolbarHeight + _topGap,
         20,
         32,
       ),
@@ -151,33 +235,42 @@ class _BalanceCard extends StatelessWidget {
               fontFamily: AppTheme.fontFamily,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            '${DateFormatter.format(header.transferDate)} · ${header.branch}',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.8),
-              fontSize: 12,
-              fontFamily: AppTheme.fontFamily,
-            ),
-          ),
-          const SizedBox(height: 24),
+          const SizedBox(height: _gapAfterCode),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: _BalanceStat(
-                  label: 'Shipped',
-                  value: (header.sentbasketCount ?? 0).toString(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _BalanceStat(
+                      label: 'Transfer Date',
+                      value: DateFormatter.format(header.transferDate),
+                      valueFontSize: 16,
+                    ),
+                    const SizedBox(height: _gapBetweenGridRows),
+                    _BalanceStat(
+                      label: 'Shipped',
+                      value: (header.sentbasketCount ?? 0).toString(),
+                    ),
+                  ],
                 ),
               ),
-              Container(
-                width: 1,
-                height: 36,
-                color: Colors.white.withValues(alpha: 0.25),
-              ),
               Expanded(
-                child: _BalanceStat(
-                  label: 'Received',
-                  value: (header.receivedBasketCount ?? 0).toString(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _BalanceStat(
+                      label: 'Branch',
+                      value: header.branch,
+                      valueFontSize: 16,
+                    ),
+                    const SizedBox(height: _gapBetweenGridRows),
+                    _BalanceStat(
+                      label: 'Received',
+                      value: (header.receivedBasketCount ?? 0).toString(),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -189,38 +282,41 @@ class _BalanceCard extends StatelessWidget {
 }
 
 class _BalanceStat extends StatelessWidget {
-  const _BalanceStat({required this.label, required this.value});
+  const _BalanceStat({
+    required this.label,
+    required this.value,
+    this.valueFontSize = 24,
+  });
 
   final String label;
   final String value;
+  final double valueFontSize;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.75),
-              fontSize: 12,
-              fontFamily: AppTheme.fontFamily,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.75),
+            fontSize: 12,
+            fontFamily: AppTheme.fontFamily,
           ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 24,
-              fontFamily: AppTheme.fontFamily,
-            ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: valueFontSize,
+            fontFamily: AppTheme.fontFamily,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -235,6 +331,8 @@ class _BasketSheet extends StatelessWidget {
     required this.filteredBaskets,
     required this.onSearchTap,
     required this.scrollController,
+    required this.onHandleDragUpdate,
+    required this.onHandleDragEnd,
   });
 
   final AsyncValue<List<TransferHistoryDetail>> detail;
@@ -242,6 +340,13 @@ class _BasketSheet extends StatelessWidget {
   final List<TransferHistoryDetail> filteredBaskets;
   final VoidCallback onSearchTap;
   final ScrollController scrollController;
+
+  // The handle bar + header row sit above the ListView, outside its
+  // scrollable viewport, so DraggableScrollableSheet's built-in
+  // drag-to-resize (which is wired through the scroll controller) never
+  // sees gestures that start here — these drive the sheet manually instead.
+  final ValueChanged<DragUpdateDetails> onHandleDragUpdate;
+  final ValueChanged<DragEndDetails> onHandleDragEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -253,35 +358,47 @@ class _BasketSheet extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const SizedBox(height: 10),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: const Color(0xFFD6D6D6),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 8, 4),
-            child: Row(
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onVerticalDragUpdate: onHandleDragUpdate,
+            onVerticalDragEnd: onHandleDragEnd,
+            child: Column(
               children: [
-                const Expanded(
-                  child: Text(
-                    'List of Basket',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                const SizedBox(height: 10),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD6D6D6),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                IconButton(
-                  icon: Icon(
-                    Icons.tune_rounded,
-                    size: 20,
-                    color: filter.isActive
-                        ? AppTheme.primaryColor
-                        : Colors.black87,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 8, 4),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'List of Basket',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.tune_rounded,
+                          size: 20,
+                          color: filter.isActive
+                              ? AppTheme.primaryColor
+                              : Colors.black87,
+                        ),
+                        tooltip: 'Search / filter basket',
+                        onPressed: onSearchTap,
+                      ),
+                    ],
                   ),
-                  tooltip: 'Search / filter basket',
-                  onPressed: onSearchTap,
                 ),
               ],
             ),
@@ -302,10 +419,11 @@ class _BasketSheet extends StatelessWidget {
                       message: 'This transfer is empty',
                       icon: Icons.inventory_2_outlined,
                     ),
-                  AsyncData() when filteredBaskets.isEmpty => const _Placeholder(
-                    message: 'No basket matches your filter',
-                    icon: Icons.search_off_rounded,
-                  ),
+                  AsyncData() when filteredBaskets.isEmpty =>
+                    const _Placeholder(
+                      message: 'No basket matches your filter',
+                      icon: Icons.search_off_rounded,
+                    ),
                   AsyncData() => Column(
                     children: filteredBaskets
                         .map((basket) => _BasketCard(basket: basket))
@@ -381,13 +499,18 @@ class _BasketCard extends StatelessWidget {
             children: [
               Text(
                 basket.basketCode,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
               ),
               _StatusChip(
                 label: isReceived
                     ? DateFormatter.format(basket.receivedAt!)
                     : 'Not received yet',
-                color: isReceived ? AppTheme.successColor : AppTheme.warningColor,
+                color: isReceived
+                    ? AppTheme.successColor
+                    : AppTheme.warningColor,
               ),
             ],
           ),
@@ -455,7 +578,11 @@ class _StatusChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700),
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
