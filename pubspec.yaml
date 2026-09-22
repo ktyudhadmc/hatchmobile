@@ -1,5 +1,5 @@
 name: hatchmobile
-description: "Hatchery Mobile"
+description: "Fast and accurate egg receiving & recording app for hatchery operations."
 publish_to: "none"
 # Local/dev version only. Released builds get their versionName/versionCode
 # from the git tag via `flutter build --build-name/--build-number` in CI

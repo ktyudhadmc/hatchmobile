@@ -129,6 +129,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       apk_name: ${{ steps.version.outputs.apk_name }}
+      aab_name: ${{ steps.version.outputs.aab_name }}
       channel: ${{ steps.version.outputs.channel }}
     steps:
       - uses: actions/checkout@v4
@@ -160,6 +161,12 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "apk_name=app-release-${VERSION}.apk" >> "$GITHUB_OUTPUT"
 
+          # BUILD AAB
+          flutter build appbundle --release --build-name="$VERSION" --build-number="${{ github.run_number }}"
+          mv build/app/outputs/bundle/release/app-release.aab "app-release-${VERSION}.aab"
+          echo "aab_name=app-release-${VERSION}.aab" >> "$GITHUB_OUTPUT"
+          #
+
           # Same channel parsing as DeviceInfoHelper.buildChannel in the app
           # itself — keep the two in sync if the tag suffixes ever change.
           CHANNEL="stable"
@@ -174,7 +181,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: hatchmobile-${{ steps.version.outputs.version }}
-          path: app-release-*.apk
+          path: |
+            app-release-*.apk
+            app-release-*.aab
           retention-days: 0
 
   # Publishes the tagged APK as a GitHub Release asset.
@@ -193,7 +202,9 @@ jobs:
         with:
           name: hatchmobile ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
-          files: ${{ needs.build-tag.outputs.apk_name }}
+          files: |
+            ${{ needs.build-tag.outputs.apk_name }}
+            ${{ needs.build-tag.outputs.aab_name }}
           prerelease: ${{ contains(github.ref_name, '-alpha.') || contains(github.ref_name, '-rc.') || contains(github.ref_name, '-beta.') || contains(github.ref_name, '-snapshot.') }}
 
   # Pushes pre-release builds straight to Firebase App Distribution testers
