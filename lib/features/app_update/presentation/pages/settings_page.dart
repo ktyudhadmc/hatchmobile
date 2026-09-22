@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../shared/widgets/refreshable_view.dart';
 import '../providers/app_update_provider.dart';
 import '../providers/install_permission_provider.dart';
@@ -44,21 +45,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
       appBar: AppBar(title: const Text('Settings')),
       body: RefreshableView(
         onRefresh: () async {
+          if (isPlayDistribution) return;
           ref.invalidate(appUpdateCheckProvider);
           ref.invalidate(canInstallUpdatesProvider);
           await ref.read(appUpdateCheckProvider.future).catchError((_) => null);
         },
         slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.all(20),
-            sliver: SliverList.list(
-              children: const [
-                AppUpdateBanner(),
-                AutoUpdateToggle(),
-                AllowInstallUpdatesCard(),
-              ],
+          if (!isPlayDistribution)
+            SliverPadding(
+              padding: const EdgeInsets.all(20),
+              sliver: SliverList.list(
+                children: const [
+                  AppUpdateBanner(),
+                  AutoUpdateToggle(),
+                  AllowInstallUpdatesCard(),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );

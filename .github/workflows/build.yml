@@ -1,5 +1,13 @@
 # Android build-only pipeline (no Play Store publishing yet).
 #
+# Two build flavors (see android/app/build.gradle.kts):
+#   - direct: current behavior — GitHub Release + Firebase App Distribution,
+#             keeps the in-app APK updater (REQUEST_INSTALL_PACKAGES).
+#   - play:   Play Store upload — strips REQUEST_INSTALL_PACKAGES and hides
+#             the in-app updater UI (Play Store handles updates itself).
+#             Only built for stable tags (build-play job); not auto-published,
+#             download the AAB artifact and upload it to Play Console by hand.
+#
 # Versioning:
 #   - Stable release:  tag  vMAJOR.MINOR.PATCH            e.g. v1.2.3
 #   - Testing build:   tag  vMAJOR.MINOR.PATCH-rc.N        e.g. v1.2.3-rc.1
@@ -156,14 +164,17 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           echo "Building $VERSION (build ${{ github.run_number }})"
           # arm64-v8a only — see the build-dev job above for why.
-          flutter build apk --release --target-platform android-arm64 --build-name="$VERSION" --build-number="${{ github.run_number }}"
-          mv build/app/outputs/flutter-apk/app-release.apk "app-release-${VERSION}.apk"
+          # "direct" flavor: distributed via GitHub Release / Firebase App
+          # Distribution, keeps the in-app APK updater. See build-play below
+          # for the separate Play Store flavor.
+          flutter build apk --release --flavor direct --dart-define=DISTRIBUTION_CHANNEL=direct --target-platform android-arm64 --build-name="$VERSION" --build-number="${{ github.run_number }}"
+          mv build/app/outputs/flutter-apk/direct/release/app-direct-release.apk "app-release-${VERSION}.apk"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "apk_name=app-release-${VERSION}.apk" >> "$GITHUB_OUTPUT"
 
           # BUILD AAB
-          flutter build appbundle --release --build-name="$VERSION" --build-number="${{ github.run_number }}"
-          mv build/app/outputs/bundle/release/app-release.aab "app-release-${VERSION}.aab"
+          flutter build appbundle --release --flavor direct --dart-define=DISTRIBUTION_CHANNEL=direct --build-name="$VERSION" --build-number="${{ github.run_number }}"
+          mv build/app/outputs/bundle/directRelease/app-direct-release.aab "app-release-${VERSION}.aab"
           echo "aab_name=app-release-${VERSION}.aab" >> "$GITHUB_OUTPUT"
           #
 
@@ -185,6 +196,47 @@ jobs:
             app-release-*.apk
             app-release-*.aab
           retention-days: 0
+
+  # Play Store flavor: only built for stable tags. Strips
+  # REQUEST_INSTALL_PACKAGES and disables the in-app updater UI (see
+  # android/app/src/play/AndroidManifest.xml and isPlayDistribution in
+  # lib/core/constants/app_constants.dart) since Play Store manages updates
+  # itself. Not auto-published — download the AAB artifact and upload it to
+  # Play Console manually.
+  build-play:
+    if: github.ref_type == 'tag' && needs.build-tag.outputs.channel == 'stable'
+    needs: [analyze, test, build-tag]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+
+      - name: Set up signing and Firebase config
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > android/app/google-services.json
+          echo "${{ secrets.UPLOAD_KEYSTORE_JKS }}" | base64 -d > android/app/upload-keystore.jks
+          cat > android/app/key.properties <<EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=upload-keystore.jks
+          EOF
+
+      - name: Build AAB for Play Store
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          flutter build appbundle --release --flavor play --dart-define=DISTRIBUTION_CHANNEL=play --build-name="$VERSION" --build-number="${{ github.run_number }}"
+          mv build/app/outputs/bundle/playRelease/app-play-release.aab "app-play-${VERSION}.aab"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hatchmobile-play-${{ needs.build-tag.outputs.version }}
+          path: app-play-*.aab
+          retention-days: 30
 
   # Publishes the tagged APK as a GitHub Release asset.
   release:
