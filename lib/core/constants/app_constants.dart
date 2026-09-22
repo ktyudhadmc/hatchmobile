@@ -15,13 +15,6 @@ enum UpdateSource {
   }
 }
 
-/// Set via --dart-define=DISTRIBUTION_CHANNEL=play in the "play" Gradle
-/// flavor build. Play Store handles app updates itself, so that build must
-/// not show the in-app updater UI (its APK install flow needs
-/// REQUEST_INSTALL_PACKAGES, which the play flavor's manifest strips).
-const bool isPlayDistribution =
-    String.fromEnvironment('DISTRIBUTION_CHANNEL') == 'play';
-
 class AppConstants {
   AppConstants._();
 

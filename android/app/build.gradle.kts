@@ -48,20 +48,6 @@ android {
         versionName = flutter.versionName
     }
 
-    // "direct": current behavior, distributed via GitHub Release / Firebase App
-    // Distribution, keeps the in-app APK updater (REQUEST_INSTALL_PACKAGES).
-    // "play": Play Store upload — strips REQUEST_INSTALL_PACKAGES via
-    // src/play/AndroidManifest.xml since Play Store handles updates itself.
-    flavorDimensions += "distribution"
-    productFlavors {
-        create("direct") {
-            dimension = "distribution"
-        }
-        create("play") {
-            dimension = "distribution"
-        }
-    }
-
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
