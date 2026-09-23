@@ -1,14 +1,66 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// In-app APK updater is disabled — REQUEST_INSTALL_PACKAGES was dropped
-// from the manifest to clear the undeclared-permission blocker in Play
-// Console review, so the update banner/toggle/install-permission card
-// (which relied on it) are no longer shown here.
-class SettingsPage extends StatelessWidget {
+import '../../../../shared/widgets/refreshable_view.dart';
+import '../providers/app_update_provider.dart';
+import '../providers/install_permission_provider.dart';
+import '../widgets/allow_install_updates_card.dart';
+import '../widgets/app_update_banner.dart';
+import '../widgets/auto_update_toggle.dart';
+
+class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
   @override
+  ConsumerState<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends ConsumerState<SettingsPage>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // The permission is granted from the system Settings screen, outside
+    // the app — re-check once the user comes back to it.
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(canInstallUpdatesProvider);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: const Text('Settings')));
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings')),
+      body: RefreshableView(
+        onRefresh: () async {
+          ref.invalidate(appUpdateCheckProvider);
+          ref.invalidate(canInstallUpdatesProvider);
+          await ref.read(appUpdateCheckProvider.future).catchError((_) => null);
+        },
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.all(20),
+            sliver: SliverList.list(
+              children: const [
+                AppUpdateBanner(),
+                AutoUpdateToggle(),
+                AllowInstallUpdatesCard(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
