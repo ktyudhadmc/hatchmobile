@@ -1,13 +1,16 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../constants/api_endpoints.dart';
 import '../constants/app_constants.dart';
 import '../errors/app_exception.dart';
 import '../utils/dev_log.dart';
 import '../utils/device_info_helper.dart';
+import 'auth_events.dart';
 import 'connectivity_service.dart';
 
 final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
@@ -31,6 +34,7 @@ final dioProvider = Provider<Dio>((ref) {
 
   dio.interceptors.addAll([
     _AuthInterceptor(storage),
+    _UnauthorizedInterceptor(ref.read(unauthorizedEventProvider)),
     _ErrorInterceptor(connectivity),
     _DevLogInterceptor(),
     LogInterceptor(requestBody: true, responseBody: true),
@@ -60,6 +64,25 @@ class _AuthInterceptor extends Interceptor {
     options.headers['user-agent'] = DeviceInfoHelper.instance.userAgent;
 
     handler.next(options);
+  }
+}
+
+/// Signals [unauthorizedEventProvider] whenever the server rejects an
+/// already-authenticated request with 401, so the auth feature can force a
+/// logout. Excludes the login endpoint itself — a 401 there just means
+/// wrong credentials, not an expired session.
+class _UnauthorizedInterceptor extends Interceptor {
+  _UnauthorizedInterceptor(this._events);
+
+  final StreamController<void> _events;
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    final isLoginRequest = err.requestOptions.path == ApiEndpoints.login;
+    if (err.response?.statusCode == 401 && !isLoginRequest) {
+      _events.add(null);
+    }
+    handler.next(err);
   }
 }
 

@@ -50,6 +50,9 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> clearSession() => _local.clear();
+
+  @override
   Future<User?> getCachedUser() => _local.readCachedUser();
 
   @override
