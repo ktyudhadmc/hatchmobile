@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/network/auth_events.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/usecases/get_current_user_usecase.dart';
@@ -10,11 +11,23 @@ final authProvider = StateNotifierProvider<AuthNotifier, AsyncValue<User?>>((
   ref,
 ) {
   final repository = ref.watch(authRepositoryProvider);
-  return AuthNotifier(
+  final notifier = AuthNotifier(
     loginUsecase: LoginUsecase(repository),
     logoutUsecase: LogoutUsecase(repository),
     getCurrentUserUsecase: GetCurrentUserUsecase(repository),
+    clearSession: repository.clearSession,
   );
+
+  // The dio_client's 401 interceptor broadcasts here instead of reaching
+  // into this provider directly (core/network can't depend on
+  // features/auth) — forward it into a forced logout.
+  final subscription = ref
+      .watch(unauthorizedEventProvider)
+      .stream
+      .listen((_) => notifier.forceLogout());
+  ref.onDispose(subscription.cancel);
+
+  return notifier;
 });
 
 /// Derived flag the router watches to decide whether to redirect to /login.
@@ -27,6 +40,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
     required this.loginUsecase,
     required this.logoutUsecase,
     required this.getCurrentUserUsecase,
+    required this.clearSession,
   }) : super(const AsyncValue.loading()) {
     restoreSession();
   }
@@ -34,6 +48,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
   final LoginUsecase loginUsecase;
   final LogoutUsecase logoutUsecase;
   final GetCurrentUserUsecase getCurrentUserUsecase;
+  final Future<void> Function() clearSession;
 
   Future<void> restoreSession() async {
     state = const AsyncValue.loading();
@@ -61,6 +76,15 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
 
   Future<void> logout() async {
     await logoutUsecase();
+    state = const AsyncValue.data(null);
+  }
+
+  /// Called when the server has already invalidated the session (401) — no
+  /// point calling the logout endpoint, just drop the local session so the
+  /// router's isAuthenticatedProvider check bounces to /login.
+  Future<void> forceLogout() async {
+    if (state.valueOrNull == null) return;
+    await clearSession();
     state = const AsyncValue.data(null);
   }
 }
