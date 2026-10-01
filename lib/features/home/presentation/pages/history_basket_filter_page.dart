@@ -72,15 +72,17 @@ class _HistoryBasketFilterPageState extends State<HistoryBasketFilterPage> {
       appBar: AppBar(title: const Text('Filter Basket')),
       body: SafeArea(
         child: Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-          ),
+          // No viewInsets.bottom here: Scaffold already resizes its body for
+          // the keyboard, so adding it again pushed Reset/Apply up.
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
               const Text(
                 'Status',
                 style: TextStyle(
@@ -137,7 +139,11 @@ class _HistoryBasketFilterPageState extends State<HistoryBasketFilterPage> {
                   ),
                 ),
               ),
-              const Spacer(),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               // Stacked top/bottom (Reset above Apply), matching
               // HistoryDateRangeFilterSheet's button layout instead of a
               // side-by-side row.

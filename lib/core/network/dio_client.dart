@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -53,7 +54,25 @@ class _AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    final token = await _storage.read(key: AppConstants.tokenKey);
+    // A secure-storage failure (e.g. a corrupted Android keystore) must not
+    // abort the request — it would surface as a bogus "server unreachable".
+    String? token;
+    try {
+      token = await _storage.read(key: AppConstants.tokenKey);
+    } catch (e) {
+      DevLog.instance.add(
+        DevLogTag.api,
+        'Secure storage read failed',
+        level: DevLogLevel.error,
+        detail: e.toString(),
+      );
+      // Unreadable entries (stale keystore key after a reinstall/restore)
+      // never recover on their own, so wipe them and let the user sign in
+      // again instead of failing every request.
+      try {
+        await _storage.deleteAll();
+      } catch (_) {}
+    }
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
     }
@@ -112,6 +131,14 @@ class _ErrorInterceptor extends Interceptor {
     }
 
     if (response == null) {
+      // An `unknown` failure with no response is usually a local fault
+      // (interceptor/plugin threw), not the network — don't blame the server.
+      if (err.type == DioExceptionType.unknown && err.error is! SocketException) {
+        handler.next(
+          _wrap(err, AppException(err.error?.toString() ?? 'Something went wrong')),
+        );
+        return;
+      }
       handler.next(_wrap(err, await _networkOrServerException()));
       return;
     }
