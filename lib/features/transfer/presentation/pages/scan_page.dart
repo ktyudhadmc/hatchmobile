@@ -15,6 +15,7 @@ import '../../../../core/firebase/remote_config/firebase_remote_config_module.da
 import '../../../../core/firebase/remote_config/presentation/remote_config_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/dev_log.dart';
+import '../../../../shared/widgets/form/numeric_keypad.dart';
 import '../../../../shared/widgets/form/pin_code_input.dart';
 import '../../../../shared/widgets/scanner/scanner_view.dart';
 import '../../domain/entities/transfer_basket.dart';
@@ -110,12 +111,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
         top: false,
         minimum: const EdgeInsets.only(bottom: 16),
         child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            12,
-            20,
-            16 + MediaQuery.of(context).viewInsets.bottom,
-          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -171,11 +167,28 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                   fontSize: screenHeight * 0.026,
                   fieldHeight: screenHeight * 0.04,
                   controller: pinController,
-                  onCompleted: (pin) =>
-                      Navigator.of(context).pop('$prefix$pin'),
+                  readOnly: true,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+              NumericKeypad(
+                onDigit: (d) {
+                  if (pinController.text.length >= 4) return;
+                  pinController.text += d;
+                  if (pinController.text.length == 4) {
+                    Navigator.of(context).pop(
+                      '${selectedPrefix.value}${pinController.text}',
+                    );
+                  }
+                },
+                onBackspace: () {
+                  final t = pinController.text;
+                  if (t.isNotEmpty) {
+                    pinController.text = t.substring(0, t.length - 1);
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
 
               SizedBox(
                 width: double.infinity,

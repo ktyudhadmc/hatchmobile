@@ -14,6 +14,7 @@ class PinCodeInput extends StatelessWidget {
     this.prefix,
     this.fontSize = 20,
     this.autoFocus = true,
+    this.readOnly = false,
     this.keyboardType = TextInputType.number,
     this.fieldWidth = 40,
     this.fieldHeight = 50,
@@ -29,6 +30,10 @@ class PinCodeInput extends StatelessWidget {
   final TextEditingController controller;
   final String? prefix;
   final bool autoFocus;
+
+  /// Blocks the system keyboard, for use with an on-screen keypad that
+  /// writes into [controller] itself.
+  final bool readOnly;
   final TextInputType keyboardType;
   final double fieldWidth;
   final double fieldHeight;
@@ -87,7 +92,8 @@ class PinCodeInput extends StatelessWidget {
                 child: PinCodeTextField(
                   appContext: context,
                   length: length,
-                  autoFocus: autoFocus,
+                  autoFocus: autoFocus && !readOnly,
+                  readOnly: readOnly,
                   controller: controller,
                   keyboardType: keyboardType,
                   animationType: AnimationType.fade,
