@@ -14,6 +14,7 @@ class PinCodeInput extends StatelessWidget {
     this.prefix,
     this.fontSize = 20,
     this.autoFocus = true,
+    this.focusNode,
     this.readOnly = false,
     this.keyboardType = TextInputType.number,
     this.fieldWidth = 40,
@@ -30,6 +31,11 @@ class PinCodeInput extends StatelessWidget {
   final TextEditingController controller;
   final String? prefix;
   final bool autoFocus;
+
+  /// Lets the caller move focus to the fields itself — needed with
+  /// [readOnly], where [autoFocus] is ignored, to keep the first empty
+  /// box highlighted.
+  final FocusNode? focusNode;
 
   /// Blocks the system keyboard, for use with an on-screen keypad that
   /// writes into [controller] itself.
@@ -94,6 +100,7 @@ class PinCodeInput extends StatelessWidget {
                   length: length,
                   autoFocus: autoFocus && !readOnly,
                   readOnly: readOnly,
+                  focusNode: focusNode,
                   controller: controller,
                   keyboardType: keyboardType,
                   animationType: AnimationType.fade,

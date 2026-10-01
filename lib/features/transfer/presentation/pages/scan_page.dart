@@ -1,10 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/cupertino.dart'
-    show
-        CupertinoActionSheet,
-        CupertinoActionSheetAction,
-        showCupertinoModalPopup;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,6 +16,7 @@ import '../../../../shared/widgets/scanner/scanner_view.dart';
 import '../../domain/entities/transfer_basket.dart';
 import '../providers/transfer_provider.dart';
 import '../widgets/scanner/transfer_scanner_controller.dart';
+import '../widgets/basket_prefix_picker_sheet.dart';
 import '../widgets/transfer_not_found_sheet.dart';
 import '../widgets/transfer_receive_sheet.dart';
 import '../widgets/transfer_scanner_view.dart';
@@ -88,6 +84,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
   /// only the digits are entered, PIN-field style.
   Future<void> _onMockScan() async {
     final pinController = TextEditingController();
+    final pinFocusNode = FocusNode();
     final prefixes = _basketPrefixes();
     final selectedPrefix = ValueNotifier<String>(
       prefixes.isEmpty ? '' : prefixes.first,
@@ -100,6 +97,11 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     );
 
     setState(() => _isMockDialogOpen = true);
+
+    // Focus the digit boxes as soon as the sheet is on screen.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => pinFocusNode.requestFocus(),
+    );
 
     final code = await showModalBottomSheet<String>(
       context: context,
@@ -142,31 +144,22 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                   prefix: prefix,
                   onPrefixTap: prefixes.length > 1
                       ? () async {
-                          final picked = await showCupertinoModalPopup<String>(
-                            context: context,
-                            builder: (ctx) => CupertinoActionSheet(
-                              title: const Text('Basket Code Prefix'),
-                              actions: [
-                                for (final p in prefixes)
-                                  CupertinoActionSheetAction(
-                                    isDefaultAction: p == prefix,
-                                    onPressed: () => Navigator.of(ctx).pop(p),
-                                    child: Text(p),
-                                  ),
-                              ],
-                              cancelButton: CupertinoActionSheetAction(
-                                onPressed: () => Navigator.of(ctx).pop(),
-                                child: const Text('Cancel'),
-                              ),
-                            ),
+                          final picked = await BasketPrefixPickerSheet.show(
+                            context,
+                            prefixes: prefixes,
+                            selectedPrefix: prefix,
                           );
                           if (picked != null) selectedPrefix.value = picked;
+                          // Back to the digit boxes so the user can start
+                          // typing without tapping them first.
+                          pinFocusNode.requestFocus();
                         }
                       : null,
                   length: 4,
                   fontSize: screenHeight * 0.026,
                   fieldHeight: screenHeight * 0.04,
                   controller: pinController,
+                  focusNode: pinFocusNode,
                   readOnly: true,
                 ),
               ),

@@ -78,122 +78,130 @@ class _HistoryBasketFilterPageState extends State<HistoryBasketFilterPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-              const Text(
-                'Status',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: Color(0xFF7B7B7B),
-                  fontFamily: AppTheme.fontFamily,
-                ),
-              ),
-              const SizedBox(height: 8),
-              CheckboxGroup<BasketStatusFilter>(
-                options: BasketStatusFilter.values
-                    .map(
-                      (status) => CheckboxOption(
-                        value: status,
-                        label: status.label,
-                      ),
-                    )
-                    .toList(),
-                selected: _statuses,
-                onChanged: (next) => setState(() => _statuses = next),
-                // Vertical (one status per row) with a small gap — swap
-                // `direction`/`spacing` here if this list ever wants to
-                // read as a horizontal row of chips-like checkboxes instead.
-                direction: Axis.vertical,
-                spacing: 4,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Search',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: Color(0xFF7B7B7B),
-                  fontFamily: AppTheme.fontFamily,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _searchController,
-                style: const TextStyle(fontSize: 13, fontFamily: AppTheme.fontFamily),
-                decoration: InputDecoration(
-                  isDense: true,
-                  hintText: 'Search basket code...',
-                  hintStyle: const TextStyle(fontSize: 13),
-                  prefixIcon: const Icon(Icons.search, size: 18),
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 12,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: Color(0xFFD6D6D6)),
-                  ),
-                ),
-              ),
-                    ],
-                  ),
-                ),
-              ),
+              Expanded(child: SingleChildScrollView(child: _buildFilterFields())),
               const SizedBox(height: 16),
               // Stacked top/bottom (Reset above Apply), matching
               // HistoryDateRangeFilterSheet's button layout instead of a
               // side-by-side row.
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: _reset,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.primaryColor,
-                    side: const BorderSide(color: AppTheme.primaryColor),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text(
-                    'RESET',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontFamily: AppTheme.fontFamily,
-                    ),
-                  ),
-                ),
-              ),
+              _FilterButton.outlined(label: 'RESET', onPressed: _reset),
               const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _apply,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text(
-                    'APPLY',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontFamily: AppTheme.fontFamily,
-                    ),
-                  ),
-                ),
-              ),
+              _FilterButton.filled(label: 'APPLY', onPressed: _apply),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildFilterFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionLabel('Status'),
+        const SizedBox(height: 8),
+        CheckboxGroup<BasketStatusFilter>(
+          options: BasketStatusFilter.values
+              .map((s) => CheckboxOption(value: s, label: s.label))
+              .toList(),
+          selected: _statuses,
+          onChanged: (next) => setState(() => _statuses = next),
+          // Vertical (one status per row) with a small gap — swap
+          // `direction`/`spacing` here if this list ever wants to
+          // read as a horizontal row of chips-like checkboxes instead.
+          direction: Axis.vertical,
+          spacing: 4,
+        ),
+        const SizedBox(height: 16),
+        const _SectionLabel('Search'),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _searchController,
+          style: const TextStyle(fontSize: 13, fontFamily: AppTheme.fontFamily),
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: 'Search basket code...',
+            hintStyle: const TextStyle(fontSize: 13),
+            prefixIcon: const Icon(Icons.search, size: 18),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 12,
+              horizontal: 12,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFD6D6D6)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontWeight: FontWeight.w600,
+        fontSize: 13,
+        color: Color(0xFF7B7B7B),
+        fontFamily: AppTheme.fontFamily,
+      ),
+    );
+  }
+}
+
+/// Full-width Reset/Apply button — the two only differ in fill vs outline.
+class _FilterButton extends StatelessWidget {
+  const _FilterButton.outlined({required this.label, required this.onPressed})
+    : _filled = false;
+  const _FilterButton.filled({required this.label, required this.onPressed})
+    : _filled = true;
+
+  final String label;
+  final VoidCallback onPressed;
+  final bool _filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(8));
+    const padding = EdgeInsets.symmetric(vertical: 16);
+    final text = Text(
+      label,
+      style: const TextStyle(
+        fontWeight: FontWeight.w700,
+        fontFamily: AppTheme.fontFamily,
+      ),
+    );
+
+    return SizedBox(
+      width: double.infinity,
+      child: _filled
+          ? ElevatedButton(
+              onPressed: onPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.white,
+                shape: shape,
+                padding: padding,
+              ),
+              child: text,
+            )
+          : OutlinedButton(
+              onPressed: onPressed,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.primaryColor,
+                side: const BorderSide(color: AppTheme.primaryColor),
+                shape: shape,
+                padding: padding,
+              ),
+              child: text,
+            ),
     );
   }
 }
