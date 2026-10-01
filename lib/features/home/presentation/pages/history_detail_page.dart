@@ -135,7 +135,21 @@ class _HistoryDetailPageState extends ConsumerState<HistoryDetailPage> {
       ),
       body: Stack(
         children: [
-          _BalanceCard(header: widget.header),
+          _BalanceCard(
+            header: widget.header,
+            // The header counts come from the list endpoint and can lag
+            // behind; once the basket list is loaded it is the source of
+            // truth, so derive Shipped/Received from it.
+            shippedCount: switch (detail) {
+              AsyncData(value: final baskets) => baskets.length,
+              _ => widget.header.sentbasketCount ?? 0,
+            },
+            receivedCount: switch (detail) {
+              AsyncData(value: final baskets) =>
+                baskets.where((b) => b.receivedAt != null).length,
+              _ => widget.header.receivedBasketCount ?? 0,
+            },
+          ),
           Positioned.fill(
             child: DraggableScrollableSheet(
               controller: _sheetController,
@@ -175,9 +189,15 @@ class _HistoryDetailPageState extends ConsumerState<HistoryDetailPage> {
 /// above Shipped in the left column, Branch sits above Received in the
 /// right column.
 class _BalanceCard extends StatelessWidget {
-  const _BalanceCard({required this.header});
+  const _BalanceCard({
+    required this.header,
+    required this.shippedCount,
+    required this.receivedCount,
+  });
 
   final TransferHistory header;
+  final int shippedCount;
+  final int receivedCount;
 
   /// Content height below the AppBar, from the card's own top padding down
   /// past the Shipped/Received row (plus [_trailingGap]/[_adjustmentHeight]
@@ -251,7 +271,7 @@ class _BalanceCard extends StatelessWidget {
                     const SizedBox(height: _gapBetweenGridRows),
                     _BalanceStat(
                       label: 'Shipped',
-                      value: (header.sentbasketCount ?? 0).toString(),
+                      value: shippedCount.toString(),
                     ),
                   ],
                 ),
@@ -268,7 +288,7 @@ class _BalanceCard extends StatelessWidget {
                     const SizedBox(height: _gapBetweenGridRows),
                     _BalanceStat(
                       label: 'Received',
-                      value: (header.receivedBasketCount ?? 0).toString(),
+                      value: receivedCount.toString(),
                     ),
                   ],
                 ),
