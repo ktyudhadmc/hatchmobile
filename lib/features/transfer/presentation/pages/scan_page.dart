@@ -1,9 +1,18 @@
+import 'dart:convert';
+
+import 'package:flutter/cupertino.dart'
+    show
+        CupertinoActionSheet,
+        CupertinoActionSheetAction,
+        showCupertinoModalPopup;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../../../core/firebase/remote_config/firebase_remote_config_module.dart';
+import '../../../../core/firebase/remote_config/presentation/remote_config_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/dev_log.dart';
 import '../../../../shared/widgets/form/pin_code_input.dart';
@@ -48,6 +57,28 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     });
   }
 
+  /// Prefixes offered on the manual-entry sheet, from Remote Config
+  /// (JSON array, e.g. `["A","NC"]`). No in-app default: if the key is
+  /// unset or invalid the list is empty and the sheet shows digits only.
+  List<String> _basketPrefixes() {
+    final raw = ref
+        .read(remoteConfigServiceProvider)
+        .getString(RemoteConfigKeys.prefixKeyBasketCode);
+    if (raw.trim().isEmpty) return [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return [];
+      return decoded
+          .whereType<String>()
+          .map((e) => e.trim().toUpperCase())
+          .where((e) => e.isNotEmpty)
+          .toSet()
+          .toList();
+    } on FormatException {
+      return [];
+    }
+  }
+
   /// Manual entry shortcut: pretend a QR was scanned and feed the code
   /// straight into the same [scanBasketProvider] flow a real detection
   /// would, so the rest of the pipeline (GET basket -> receive sheet ->
@@ -56,6 +87,10 @@ class _ScanPageState extends ConsumerState<ScanPage> {
   /// only the digits are entered, PIN-field style.
   Future<void> _onMockScan() async {
     final pinController = TextEditingController();
+    final prefixes = _basketPrefixes();
+    final selectedPrefix = ValueNotifier<String>(
+      prefixes.isEmpty ? '' : prefixes.first,
+    );
 
     final screenHeight = MediaQuery.of(context).size.height;
 
@@ -105,22 +140,49 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                 ],
               ),
               const SizedBox(height: 16),
-              PinCodeInput(
-                prefix: 'A',
-                length: 4,
-                fontSize: screenHeight * 0.026,
-                fieldHeight: screenHeight * 0.04,
-                controller: pinController,
-                onCompleted: (pin) => Navigator.of(context).pop('A$pin'),
+              ValueListenableBuilder<String>(
+                valueListenable: selectedPrefix,
+                builder: (context, prefix, _) => PinCodeInput(
+                  prefix: prefix,
+                  onPrefixTap: prefixes.length > 1
+                      ? () async {
+                          final picked = await showCupertinoModalPopup<String>(
+                            context: context,
+                            builder: (ctx) => CupertinoActionSheet(
+                              title: const Text('Basket Code Prefix'),
+                              actions: [
+                                for (final p in prefixes)
+                                  CupertinoActionSheetAction(
+                                    isDefaultAction: p == prefix,
+                                    onPressed: () => Navigator.of(ctx).pop(p),
+                                    child: Text(p),
+                                  ),
+                              ],
+                              cancelButton: CupertinoActionSheetAction(
+                                onPressed: () => Navigator.of(ctx).pop(),
+                                child: const Text('Cancel'),
+                              ),
+                            ),
+                          );
+                          if (picked != null) selectedPrefix.value = picked;
+                        }
+                      : null,
+                  length: 4,
+                  fontSize: screenHeight * 0.026,
+                  fieldHeight: screenHeight * 0.04,
+                  controller: pinController,
+                  onCompleted: (pin) =>
+                      Navigator.of(context).pop('$prefix$pin'),
+                ),
               ),
               const SizedBox(height: 20),
 
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.of(
-                    context,
-                  ).pop('A${pinController.text.trim()}'),
+                  onPressed: () => Navigator.of(context).pop(
+                    '${selectedPrefix.value}${pinController.text.trim()}',
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryColor,
                     foregroundColor: Colors.white,
@@ -164,7 +226,8 @@ class _ScanPageState extends ConsumerState<ScanPage> {
 
     if (mounted) setState(() => _isMockDialogOpen = false);
 
-    if (code == null || code.length <= 1) return;
+    final prefixLength = selectedPrefix.value.length;
+    if (code == null || code.length <= prefixLength) return;
 
     DevLog.instance.add(
       DevLogTag.scanner,

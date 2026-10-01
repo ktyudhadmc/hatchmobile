@@ -18,7 +18,11 @@ class PinCodeInput extends StatelessWidget {
     this.fieldWidth = 40,
     this.fieldHeight = 50,
     this.onCompleted,
+    this.onPrefixTap,
   });
+
+  /// When set, the prefix becomes tappable (shows a picker affordance).
+  final VoidCallback? onPrefixTap;
 
   final int length;
   final double fontSize;
@@ -44,15 +48,28 @@ class PinCodeInput extends StatelessWidget {
           Container(
             height: fieldHeight,
             margin: EdgeInsets.only(bottom: fontSize * 0.5, right: fontSize *0.5),
-            child: Center(
-              child: Text(
-                prefix!,
-                style: TextStyle(
-                  fontSize: fontSize,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryColor,
-                  fontFamily: AppTheme.fontFamily,
-                ),
+            child: InkWell(
+              onTap: onPrefixTap,
+              borderRadius: BorderRadius.circular(8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    prefix!,
+                    style: TextStyle(
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryColor,
+                      fontFamily: AppTheme.fontFamily,
+                    ),
+                  ),
+                  if (onPrefixTap != null)
+                    Icon(
+                      Icons.unfold_more_rounded,
+                      size: fontSize,
+                      color: AppTheme.primaryColor,
+                    ),
+                ],
               ),
             ),
           ),
