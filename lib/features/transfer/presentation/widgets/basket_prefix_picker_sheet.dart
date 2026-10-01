@@ -35,7 +35,7 @@ class BasketPrefixPickerSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.only(bottom: 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
