@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/asset_constants.dart';
+import '../../../../core/firebase/remote_config/firebase_remote_config_module.dart';
+import '../../../../core/firebase/remote_config/presentation/remote_config_provider.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/device_info_helper.dart';
 
 /// Landing screen shown once the splash finishes restoring the session and
 /// finds no one logged in. No app-name wording here (LoginPage's own header
@@ -11,13 +15,34 @@ import '../../../../core/theme/app_theme.dart';
 /// Cipta branding: its logo + name sit inside the CTA itself instead of a
 /// plain "Login" button, so tapping it reads as "continue with DMC" rather
 /// than repeating the word LoginPage already uses.
-class WelcomePage extends StatelessWidget {
+class WelcomePage extends ConsumerWidget {
   const WelcomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Same gate as ProfilePage: canary build or the remote kill-switch.
+    final showDevLog =
+        DeviceInfoHelper.instance.isCanaryBuild ||
+        ref
+            .watch(remoteConfigServiceProvider)
+            .getBool(RemoteConfigKeys.enableDevLog);
+
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: showDevLog
+          ? AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.bug_report_outlined),
+                  tooltip: 'Developer Log',
+                  onPressed: () => context.push('/dev-log'),
+                ),
+              ],
+            )
+          : null,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),

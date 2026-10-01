@@ -41,6 +41,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isSplash = state.matchedLocation == '/splash';
       final isWelcome = state.matchedLocation == '/welcome';
       final isLoggingIn = state.matchedLocation == '/login';
+      final isDevLog = state.matchedLocation == '/dev-log';
+
+      // The developer log must stay reachable before login so a failing
+      // login (e.g. "Unable to reach the server") can still be diagnosed.
+      if (isDevLog) return null;
 
       // While actively submitting on /login, stay put — the page shows its
       // own inline spinner and toasts the result. Only a "cold" loading
