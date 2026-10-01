@@ -27,8 +27,8 @@ class AppConstants {
   static const String _localBaseUrl = 'http://192.168.68.181:8000';
   static String get baseUrl => useLocalBackend ? _localBaseUrl : _prodBaseUrl;
 
-  static const Duration connectTimeout = Duration(seconds: 15);
-  static const Duration receiveTimeout = Duration(seconds: 15);
+  static const Duration connectTimeout = Duration(seconds: 30);
+  static const Duration receiveTimeout = Duration(seconds: 30);
 
   static const UpdateSource updateSource = UpdateSource.gitlab;
 

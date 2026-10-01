@@ -214,11 +214,18 @@ class _DevLogInterceptor extends Interceptor {
         ? appError.message
         : err.message ?? 'Unknown error';
 
+    // The mapped AppException hides the transport-level cause (DNS, TLS,
+    // timeout...), so log the original Dio type and underlying error too.
+    final rootCause = err.response == null
+        ? '\nType: ${err.type.name}'
+              '${err.message != null ? '\nCause: ${err.message}' : ''}'
+        : '';
+
     DevLog.instance.add(
       DevLogTag.api,
       '✕ ${_label(err.requestOptions)} (${statusCode ?? 'no response'})',
       level: DevLogLevel.error,
-      detail: 'Error: $reason'
+      detail: 'Error: $reason$rootCause'
           '${err.response?.data != null ? '\nResponse: ${_encode(err.response?.data)}' : ''}',
     );
     handler.next(err);
