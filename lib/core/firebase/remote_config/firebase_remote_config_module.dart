@@ -16,6 +16,10 @@ abstract final class RemoteConfigKeys {
   /// host be switched (e.g. GitHub rate-limited, migrating to GitLab)
   /// without shipping a new build.
   static const appUpdateSource = 'app_update_source';
+
+  /// JSON array of basket code prefixes the user may pick from on the
+  /// manual-entry sheet, e.g. `["A","NC"]`. A single value hides the picker.
+  static const prefixKeyBasketCode = 'prefix_key_basket_code';
 }
 
 class FirebaseRemoteConfigModule implements FirebaseModule {
