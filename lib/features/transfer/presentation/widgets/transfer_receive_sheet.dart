@@ -84,13 +84,24 @@ class _TransferReceiveSheetState extends ConsumerState<TransferReceiveSheet>
     return SafeArea(
       top: false,
       minimum: const EdgeInsets.only(bottom: 16),
-      child: _buildCard(),
+      // The scan page's body extends behind its app bar, and Scaffold then
+      // reports status bar + app bar as MediaQuery.padding.top. Capping the
+      // sheet below that keeps the app bar visible; past the cap the basket
+      // detail scrolls while the SAVE/BACK area stays pinned.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxHeight =
+              constraints.maxHeight - MediaQuery.of(context).padding.top;
+          return ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: _buildCard(),
+          );
+        },
+      ),
     );
   }
 
   Widget _buildCard() {
-    final basket = widget.basket;
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
@@ -102,87 +113,101 @@ class _TransferReceiveSheetState extends ConsumerState<TransferReceiveSheet>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                basket.basketCode,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  fontFamily: AppTheme.fontFamily,
-                ),
-              ),
-              Text(
-                basket.transfer.transferCode,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontFamily: AppTheme.fontFamily,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Farm',
-                    style: TextStyle(
-                      color: Color(0xFF7B7B7B),
-                      fontFamily: AppTheme.fontFamily,
-                    ),
-                  ),
-                  Text(
-                    'Tgl. Transfer',
-                    style: TextStyle(
-                      color: Color(0xFF7B7B7B),
-                      fontFamily: AppTheme.fontFamily,
-                    ),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    basket.transfer.branch,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontFamily: AppTheme.fontFamily,
-                    ),
-                  ),
-                  Text(
-                    DateFormatter.format(basket.transfer.transferDate),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontFamily: AppTheme.fontFamily,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          _buildHeader(),
           const SizedBox(height: 20),
-          Column(
-            children: basket.grades
-                .map(_buildGradeRow)
-                .toList()
-                .expand((row) sync* {
-                  yield row;
-                  yield const SizedBox(height: 8);
-                })
-                .toList()
-              ..removeLast(),
-          ),
+          Flexible(child: SingleChildScrollView(child: _buildGrades())),
           const SizedBox(height: 24),
           _buildActionArea(),
         ],
       ),
+    );
+  }
+
+  Widget _buildGrades() {
+    return Column(
+      children: widget.basket.grades.map(_buildGradeRow).toList().expand((
+        row,
+      ) sync* {
+        yield row;
+        yield const SizedBox(height: 8);
+      }).toList()..removeLast(),
+    );
+  }
+
+  /// Basket code, transfer code, farm and date — pinned above the scrolling
+  /// grade list.
+  Widget _buildHeader() {
+    final basket = widget.basket;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              basket.basketCode,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                fontFamily: AppTheme.fontFamily,
+              ),
+            ),
+            Text(
+              basket.transfer.transferCode,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontFamily: AppTheme.fontFamily,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Farm',
+                  style: TextStyle(
+                    color: Color(0xFF7B7B7B),
+                    fontFamily: AppTheme.fontFamily,
+                  ),
+                ),
+                Text(
+                  'Tgl. Transfer',
+                  style: TextStyle(
+                    color: Color(0xFF7B7B7B),
+                    fontFamily: AppTheme.fontFamily,
+                  ),
+                ),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  basket.transfer.branch,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontFamily: AppTheme.fontFamily,
+                  ),
+                ),
+                Text(
+                  DateFormatter.format(basket.transfer.transferDate),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontFamily: AppTheme.fontFamily,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
     );
   }
 
